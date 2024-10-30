@@ -7,16 +7,19 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
   UsePipes,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Audit } from '@prisma/client';
 
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
+import { MintCeloDto, MintCeloSchema } from '../web3/dtos/celo/mint';
+import { MintNftDto, MintNftSchema } from '../web3/dtos/polygon/mint-nft';
 import { AuditService } from './audit.service';
 import { CreateAuditDto, CreateAuditSchema } from './dtos/create-audit.dto';
-import { MintNftDto, MintNftSchema } from './dtos/mint-nft';
 import { UpdateAuditDto, UpdateAuditSchema } from './dtos/update-audit.dto';
 
 @ApiTags('audits')
@@ -77,6 +80,7 @@ export class AuditController {
   ): Promise<Audit> {
     return this.auditService.updateAudit(id, updateAuditDto);
   }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific audit by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'The ID of the audit' }) // Corrected type
@@ -89,11 +93,17 @@ export class AuditController {
     return this.auditService.deleteAudit(id);
   }
 
-  @Post('mint')
-  async mint(
-    @Body(new ZodValidationPipe(MintNftSchema))
-    mintNftDto: MintNftDto,
-  ) {
-    return this.auditService.mintNFT(mintNftDto);
+  // TODO: its only for test purpoises
+  @Post('web3')
+  // async mintPolygon(
+  //   @Body(new ZodValidationPipe(MintNftSchema))
+  //   mintNftDto: MintNftDto,
+  // ) {
+  //   return this.auditService.mintNFTPolygon(mintNftDto);
+  // }
+  async owner() {
+    // return this.auditService.owner();
+
+    console.log('call');
   }
 }

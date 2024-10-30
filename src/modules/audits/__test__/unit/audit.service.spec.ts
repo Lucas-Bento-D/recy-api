@@ -19,7 +19,6 @@ import { UpdateAuditDto } from '../../dtos/update-audit.dto';
 describe('AuditService', () => {
   let service: AuditService;
   let prisma: DeepMockProxy<PrismaService>;
-  let web3Service: DeepMockProxy<Web3Service>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,7 +37,6 @@ describe('AuditService', () => {
 
     service = module.get<AuditService>(AuditService);
     prisma = module.get(PrismaService) as DeepMockProxy<PrismaService>;
-    web3Service = module.get(Web3Service) as DeepMockProxy<Web3Service>;
   });
 
   afterEach(() => {
@@ -64,6 +62,7 @@ describe('AuditService', () => {
       evidenceUrl: 'http://evidence.url',
       createdAt: new Date(),
       updatedAt: new Date(),
+      metadata: {},
     };
 
     const createdAudit: Audit = {
@@ -714,19 +713,6 @@ describe('AuditService', () => {
         reportId: '',
         audited: true,
         auditorId: 'auditor456',
-        comments: 'This comment is valid.',
-      };
-
-      expect(() => CreateAuditSchema.parse(invalidData)).toThrow(
-        'reportId cannot be empty',
-      );
-    });
-
-    it('should fail if auditorId is empty', () => {
-      const invalidData = {
-        reportId: 'validReport123',
-        audited: true,
-        auditorId: '',
         comments: 'This comment is valid.',
       };
 

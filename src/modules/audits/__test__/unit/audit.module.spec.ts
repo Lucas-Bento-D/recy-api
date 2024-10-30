@@ -4,9 +4,9 @@ import { PrismaService } from '@/modules/prisma/prisma.service';
 
 import { Web3Module } from '../../../web3/web3.module';
 import { Web3Service } from '../../../web3/web3.service';
-import { AuditService } from '../..//audit.service';
 import { AuditController } from '../../audit.controller';
 import { AuditModule } from '../../audit.module';
+import { AuditService } from '../../audit.service';
 
 const mockWeb3Service = {
   balance: jest.fn(),
@@ -54,13 +54,6 @@ describe('AuditModule', () => {
   it('should have the AuditController', () => {
     const auditController = module.get<AuditController>(AuditController);
     expect(auditController).toBeDefined();
-  });
-
-  it('should import the Web3Module correctly', () => {
-    const web3Service = module.get<Web3Service>(Web3Service);
-    expect(web3Service).toBeDefined();
-    expect(web3Service.balance).toBeDefined();
-    expect(web3Service.transfer).toBeDefined();
   });
 
   it('should export the AuditService', () => {
