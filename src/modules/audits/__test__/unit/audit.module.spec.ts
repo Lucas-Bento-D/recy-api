@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
+import { LoggerModule } from '@/modules/logger/logger.module';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
 import { Web3Module } from '../../../web3/web3.module';
@@ -21,12 +24,20 @@ const mockConfigProvider = {
   privateKey: '0xMockPrivateKey',
 };
 
+const mockLogger = {
+  log: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+  verbose: jest.fn(),
+};
+
 describe('AuditModule', () => {
   let module: TestingModule;
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
-      imports: [AuditModule, Web3Module],
+      imports: [AuditModule, Web3Module, LoggerModule],
     })
       .overrideProvider(Web3Service)
       .useValue(mockWeb3Service)
@@ -34,6 +45,8 @@ describe('AuditModule', () => {
       .useValue(mockWeb3Provider)
       .overrideProvider('Config')
       .useValue(mockConfigProvider)
+      .overrideProvider(WINSTON_MODULE_NEST_PROVIDER)
+      .useValue(mockLogger)
       .compile();
   });
 

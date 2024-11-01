@@ -1,7 +1,11 @@
 import { INestApplication, VersioningType } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Audit } from '@prisma/client';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import request from 'supertest';
+import { Logger } from 'winston';
 
 import { AuditController } from '../../audit.controller';
 import { AuditService } from '../../audit.service';
@@ -11,6 +15,7 @@ import { UpdateAuditDto } from '../../dtos/update-audit.dto';
 describe('Audit (e2e)', () => {
   let app: INestApplication;
   let service: AuditService;
+  let logger: DeepMockProxy<Logger>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,14 +29,17 @@ describe('Audit (e2e)', () => {
             findAuditById: jest.fn(),
             updateAudit: jest.fn(),
             deleteAudit: jest.fn(),
-            owner: jest.fn(),
+            mintNFT: jest.fn(),
           },
+        },
+        {
+          provide: WINSTON_MODULE_NEST_PROVIDER,
+          useValue: mockDeep<Logger>(),
         },
       ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
-
     app.enableVersioning({
       type: VersioningType.URI,
     });
@@ -39,6 +47,9 @@ describe('Audit (e2e)', () => {
     await app.init();
 
     service = moduleFixture.get<AuditService>(AuditService);
+    logger = moduleFixture.get(
+      WINSTON_MODULE_NEST_PROVIDER,
+    ) as DeepMockProxy<Logger>;
   });
 
   afterAll(async () => {
@@ -158,13 +169,20 @@ describe('Audit (e2e)', () => {
     });
 
     it('should return 404 when the audit does not exist', async () => {
-      jest.spyOn(service, 'findAuditById').mockResolvedValue(null);
+      jest
+        .spyOn(service, 'findAuditById')
+        .mockRejectedValue(
+          new NotFoundException('Audit with ID nonexistentId not found.'),
+        );
 
       await request(app.getHttpServer())
         .get('/v1/audits/nonexistentId')
         .expect(404)
-        .expect(() => {
-          expect(service.findAuditById).toHaveBeenCalledWith('nonexistentId');
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+          expect(res.body.message).toBe(
+            'Audit with ID nonexistentId not found.',
+          );
         });
     });
   });
@@ -200,12 +218,11 @@ describe('Audit (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .put('/v1/audits/audit123')
-        .send(updateAuditDto)
-        .expect(async (res) => {
-          if (res.status !== 200) {
-            console.log('PUT/v1/audits/audit123 response:', res.body);
-          }
-        });
+        .send(updateAuditDto);
+
+      if (response.status !== 200) {
+        console.log('PUT /v1/audits/audit123 response:', response.body);
+      }
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({

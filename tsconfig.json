@@ -13,7 +13,9 @@
     "strictPropertyInitialization": false,
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
-    "lib": ["es2020"],
+    "lib": [
+      "es2020"
+    ],
     "module": "CommonJS",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
@@ -23,9 +25,15 @@
     "jsx": "react",
     "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/modules/*": ["./src/modules/*"],
-      "@/utils/*": ["./src/shared/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/modules/*": [
+        "./src/modules/*"
+      ],
+      "@/utils/*": [
+        "./src/shared/*"
+      ]
     },
     "removeComments": true,
     "resolveJsonModule": true,
@@ -35,8 +43,17 @@
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "target": "es2020"
+    "target": "es2020",
+    "types": [
+      "jest",
+      "node",
+      "multer"
+    ]
   },
-  "include": ["src/**/*", "test/**/*", "database/**/*", "jest.config.ts"]
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "database/**/*",
+    "jest.config.ts"
+  ]
 }
-

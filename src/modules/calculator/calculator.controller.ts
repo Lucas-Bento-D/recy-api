@@ -1,12 +1,24 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Post, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import CalculatorSupportEmail from '@/emails';
 import { MailService } from '@/modules/mail/mail.service';
+import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
+import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { MailDto } from '../mail/dtos/mail.dto';
 import { CalculatorService } from './calculator.service';
-import { ResultDto, SupportDto } from './dtos';
+import {
+  ResultDto,
+  ResultDtoSchema,
+  SupportDto,
+  SupportDtoSchema,
+} from './dtos';
 @ApiTags('calculator')
 @Controller({ path: 'calculator', version: '1' })
 export class CalculatorController {
@@ -15,15 +27,16 @@ export class CalculatorController {
     private readonly mailService: MailService,
   ) {}
 
+  @UseGuards(AuthorizationGuard)
   @Post('contact')
   @ApiOperation({
     summary: 'Request support',
     description: 'Returns contact information',
   })
-  @ApiBody({ type: SupportDto })
   @ApiOkResponse({
     description: 'Returns created email response',
   })
+  @UsePipes(new ZodValidationPipe(SupportDtoSchema))
   async contact(@Body() supportDto: SupportDto) {
     await this.calculatorService.saveContactInfo(supportDto);
 
@@ -51,12 +64,18 @@ export class CalculatorController {
     }
   }
 
+  @UseGuards(AuthorizationGuard)
   @Post('result')
   @ApiOperation({
     summary: 'Save result',
     description: 'Save result of the calculator',
   })
-  @ApiBody({ type: ResultDto })
+  @ApiResponse({
+    status: 201,
+    description: 'The audit has been successfully created.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @UsePipes(new ZodValidationPipe(ResultDtoSchema))
   async result(@Body() resultDto: ResultDto) {
     await this.calculatorService.saveResultInfo(resultDto);
 

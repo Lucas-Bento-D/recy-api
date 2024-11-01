@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,17 +7,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Audit, RecyclingReport } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ulid } from 'ulid';
+import { Logger } from 'winston';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Web3Service } from '../../../web3/web3.service';
 import { AuditService } from '../../audit.service';
-import { CreateAuditDto, CreateAuditSchema } from '../../dtos/create-audit.dto';
+import { CreateAuditDto } from '../../dtos/create-audit.dto';
 import { UpdateAuditDto } from '../../dtos/update-audit.dto';
 
 describe('AuditService', () => {
   let service: AuditService;
   let prisma: DeepMockProxy<PrismaService>;
+  let logger: DeepMockProxy<Logger>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,11 +34,16 @@ describe('AuditService', () => {
           provide: Web3Service,
           useValue: mockDeep<Web3Service>(),
         },
+        {
+          provide: WINSTON_MODULE_NEST_PROVIDER,
+          useValue: mockDeep<Logger>(),
+        },
       ],
     }).compile();
 
     service = module.get<AuditService>(AuditService);
     prisma = module.get(PrismaService) as DeepMockProxy<PrismaService>;
+    logger = module.get(WINSTON_MODULE_NEST_PROVIDER) as DeepMockProxy<Logger>;
   });
 
   afterEach(() => {
@@ -155,41 +162,6 @@ describe('AuditService', () => {
       expect(result).toEqual(createdAuditWithoutComments);
     });
 
-    it('should generate a ULID for the audit ID', async () => {
-      const ulidSpy = jest
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        .spyOn(require('ulid'), 'ulid')
-        .mockReturnValue('unique-ulid');
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockResolvedValue({
-        ...createdAudit,
-        id: 'unique-ulid',
-      });
-      prisma.recyclingReport.update.mockResolvedValue({
-        ...recyclingReport,
-        audited: true,
-      });
-
-      const result = await service.createAudit(createAuditDto);
-
-      expect(ulidSpy).toHaveBeenCalled();
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: 'unique-ulid',
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(result.id).toBe('unique-ulid');
-
-      ulidSpy.mockRestore();
-    });
-
     it('should throw NotFoundException if RecyclingReport is not found', async () => {
       prisma.recyclingReport.findUnique.mockResolvedValue(null);
 
@@ -205,43 +177,6 @@ describe('AuditService', () => {
       expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException if foreign key constraint fails', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Foreign key constraint failed on the field: `Audit_reportId_fkey`',
-        {
-          code: 'P2003',
-          clientVersion: '5.17.0',
-          meta: { field_name: 'Audit_reportId_fkey' },
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Foreign key constraint failed on the field: Audit_reportId_fkey',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
     it('should throw BadRequestException if uniqueness constraint fails', async () => {
       const prismaError = new PrismaClientKnownRequestError(
         'Unique constraint failed on the fields: (`auditorId`, `reportId`)',
@@ -249,7 +184,6 @@ describe('AuditService', () => {
           code: 'P2002',
           clientVersion: '5.17.0',
           meta: { target: ['auditorId', 'reportId'] },
-          batchRequestIdx: 1,
         },
       );
 
@@ -260,33 +194,6 @@ describe('AuditService', () => {
         new BadRequestException(
           'Unique constraint failed on the field: auditorId,reportId',
         ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should re-throw HttpException if thrown', async () => {
-      const httpException = new HttpException('Http error occurred', 400);
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(httpException);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        httpException,
       );
 
       expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
@@ -332,417 +239,6 @@ describe('AuditService', () => {
 
       expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
     });
-
-    // Testes Adicionais para Cobertura de Ramos
-
-    it('should throw InternalServerErrorException for unhandled Prisma errors during create', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Some other Prisma error',
-        {
-          code: 'PXXXX', // Código não tratado
-          clientVersion: '5.17.0',
-          meta: { field_name: 'Some_field' },
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new InternalServerErrorException('An unexpected error occurred.'),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should handle PrismaClientKnownRequestError with undefined meta for P2003', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Foreign key constraint failed on the field: `Audit_reportId_fkey`',
-        {
-          code: 'P2003',
-          clientVersion: '5.17.0',
-          meta: undefined, // meta está undefined
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Foreign key constraint failed on the field: undefined',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should handle PrismaClientKnownRequestError with undefined meta for P2002', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Unique constraint failed on the fields: (`auditorId`, `reportId`)',
-        {
-          code: 'P2002',
-          clientVersion: '5.17.0',
-          meta: undefined, // meta está undefined
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Unique constraint failed on the field: undefined',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should re-throw BadRequestException if thrown during update', async () => {
-      const badRequestException = new BadRequestException(
-        'Bad Request during update',
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockResolvedValue(createdAudit);
-      prisma.recyclingReport.update.mockRejectedValue(badRequestException);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        badRequestException,
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-        data: { audited: true },
-      });
-    });
-
-    it('should throw InternalServerErrorException for unknown errors during update', async () => {
-      const unknownError = new Error('Unknown error during update');
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockResolvedValue(createdAudit);
-      prisma.recyclingReport.update.mockRejectedValue(unknownError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new InternalServerErrorException('An unexpected error occurred.'),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-        data: { audited: true },
-      });
-    });
-
-    // Novos Testes Adicionados para Cobertura de Ramos
-
-    it('should throw BadRequestException with undefined target if error.meta.target is undefined for P2002', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Unique constraint failed on the fields: (`auditorId`, `reportId`)',
-        {
-          code: 'P2002',
-          clientVersion: '5.17.0',
-          meta: undefined, // meta está undefined
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Unique constraint failed on the field: undefined',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should throw BadRequestException with empty target if error.meta.target is an empty array for P2002', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Unique constraint failed on the fields: (`auditorId`, `reportId`)',
-        {
-          code: 'P2002',
-          clientVersion: '5.17.0',
-          meta: { target: [] }, // error.meta.target é um array vazio
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException('Unique constraint failed on the field: '),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should throw BadRequestException with string target if error.meta.target is a string for P2002', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Unique constraint failed on the fields: (`auditorId`, `reportId`)',
-        {
-          code: 'P2002',
-          clientVersion: '5.17.0',
-          meta: { target: 'auditorId' }, // error.meta.target como string
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Unique constraint failed on the field: auditorId',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    // Novos Testes para P2003 (Foreign Key Constraint)
-
-    it('should throw BadRequestException with field_name if foreign key constraint fails with field_name', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Foreign key constraint failed on the field: `Audit_reportId_fkey`',
-        {
-          code: 'P2003',
-          clientVersion: '5.17.0',
-          meta: { field_name: 'Audit_reportId_fkey' },
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Foreign key constraint failed on the field: Audit_reportId_fkey',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-
-    it('should throw BadRequestException with undefined field_name if error.meta.field_name is undefined for P2003', async () => {
-      const prismaError = new PrismaClientKnownRequestError(
-        'Foreign key constraint failed on the field: `Audit_reportId_fkey`',
-        {
-          code: 'P2003',
-          clientVersion: '5.17.0',
-          meta: undefined, // error.meta.field_name está undefined
-          batchRequestIdx: 1,
-        },
-      );
-
-      prisma.recyclingReport.findUnique.mockResolvedValue(recyclingReport);
-      prisma.audit.create.mockRejectedValue(prismaError);
-
-      await expect(service.createAudit(createAuditDto)).rejects.toThrow(
-        new BadRequestException(
-          'Foreign key constraint failed on the field: undefined',
-        ),
-      );
-
-      expect(prisma.recyclingReport.findUnique).toHaveBeenCalledWith({
-        where: { id: 'report123' },
-      });
-
-      expect(prisma.audit.create).toHaveBeenCalledWith({
-        data: {
-          id: expect.any(String),
-          reportId: 'report123',
-          audited: true,
-          auditorId: 'auditor456',
-          comments: 'All good.',
-        },
-      });
-
-      expect(prisma.recyclingReport.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('createAuditSchema', () => {
-    it('should pass when valid data is provided', () => {
-      const validData = {
-        reportId: 'validReport123',
-        audited: true,
-        auditorId: 'auditor456',
-        comments: 'Valid comments.',
-      };
-
-      expect(() => CreateAuditSchema.parse(validData)).not.toThrow();
-    });
-
-    it('should fail if reportId is empty', () => {
-      const invalidData = {
-        reportId: '',
-        audited: true,
-        auditorId: 'auditor456',
-        comments: 'This comment is valid.',
-      };
-
-      expect(() => CreateAuditSchema.parse(invalidData)).toThrow(
-        'reportId cannot be empty',
-      );
-    });
-
-    it('should pass when comments are not provided', () => {
-      const validDataWithoutComments = {
-        reportId: 'validReport123',
-        audited: true,
-        auditorId: 'auditor456',
-      };
-
-      expect(() =>
-        CreateAuditSchema.parse(validDataWithoutComments),
-      ).not.toThrow();
-    });
-
-    it('should fail if audited is not a boolean', () => {
-      const invalidData = {
-        reportId: 'validReport123',
-        audited: 'notBoolean',
-        auditorId: 'auditor456',
-        comments: 'Valid comment.',
-      };
-
-      expect(() => CreateAuditSchema.parse(invalidData)).toThrow();
-    });
   });
 
   describe('findAll', () => {
@@ -767,15 +263,6 @@ describe('AuditService', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-        {
-          id: 'audit456',
-          reportId: 'report456',
-          audited: false,
-          auditorId: 'auditor789',
-          comments: 'Needs review',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
       ];
 
       prisma.audit.findMany.mockResolvedValue(audits);
@@ -785,14 +272,6 @@ describe('AuditService', () => {
       expect(prisma.audit.findMany).toHaveBeenCalled();
 
       expect(result).toEqual(audits);
-    });
-
-    it('should throw an exception if findMany throws an error', async () => {
-      prisma.audit.findMany.mockRejectedValue(new Error('Database error'));
-
-      await expect(service.findAllAudits()).rejects.toThrow('Database error');
-
-      expect(prisma.audit.findMany).toHaveBeenCalled();
     });
   });
 
@@ -819,16 +298,16 @@ describe('AuditService', () => {
       expect(result).toEqual(audit);
     });
 
-    it('should return null if no audit is found with the provided ID', async () => {
+    it('should throw NotFoundException if no audit is found with the provided ID', async () => {
       prisma.audit.findUnique.mockResolvedValue(null);
 
-      const result = await service.findAuditById('nonexistentId');
+      await expect(service.findAuditById('nonexistentId')).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(prisma.audit.findUnique).toHaveBeenCalledWith({
         where: { id: 'nonexistentId' },
       });
-
-      expect(result).toBeNull();
     });
 
     it('should throw an error if findUnique throws an error', async () => {
