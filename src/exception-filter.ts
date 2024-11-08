@@ -5,21 +5,16 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Inject,
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ulid } from 'ulid';
 import { ZodError, ZodIssue } from 'zod';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(
-    @Inject(WINSTON_MODULE_NEST_PROVIDER)
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly logger: Logger) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -90,6 +85,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private getResponseMetadata(exception: unknown): ResponseMetadata {
+    console.log(exception);
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | object =
       'Internal server error, contact support and provide the errorId';

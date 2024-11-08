@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, UsePipes } from '@nestjs/common';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -10,6 +10,7 @@ import CalculatorSupportEmail from '@/emails';
 import { MailService } from '@/modules/mail/mail.service';
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
+import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { MailDto } from '../mail/dtos/mail.dto';
 import { CalculatorService } from './calculator.service';
 import {
@@ -26,6 +27,7 @@ export class CalculatorController {
     private readonly mailService: MailService,
   ) {}
 
+  @UseGuards(AuthorizationGuard)
   @Post('contact')
   @ApiOperation({
     summary: 'Request support',
@@ -62,6 +64,7 @@ export class CalculatorController {
     }
   }
 
+  @UseGuards(AuthorizationGuard)
   @Post('result')
   @ApiOperation({
     summary: 'Save result',

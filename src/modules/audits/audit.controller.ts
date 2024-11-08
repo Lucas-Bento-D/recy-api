@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
   UsePipes,
 } from '@nestjs/common';
 import {
@@ -23,9 +24,11 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
+import { AuthorizationGuard } from '../authorization/authorization.guard';
+import { MintCeloDto, MintCeloSchema } from '../web3/dtos/celo/mint';
+import { MintNftDto, MintNftSchema } from '../web3/dtos/polygon/mint-nft';
 import { AuditService } from './audit.service';
 import { CreateAuditDto, CreateAuditSchema } from './dtos/create-audit.dto';
-import { MintNftDto, MintNftSchema } from './dtos/mint-nft';
 import { UpdateAuditDto, UpdateAuditSchema } from './dtos/update-audit.dto';
 
 @ApiTags('audits')
@@ -35,8 +38,9 @@ export class AuditController {
     private readonly auditService: AuditService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: Logger,
-  ) { }
+  ) {}
 
+  // @UseGuards(AuthorizationGuard)
   @Post()
   @ApiOperation({ summary: 'Create an audit' })
   @ApiResponse({
@@ -82,6 +86,7 @@ export class AuditController {
     return audit;
   }
 
+  // @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all audits' })
   @ApiResponse({
@@ -116,6 +121,7 @@ export class AuditController {
     return audits;
   }
 
+  // @UseGuards(AuthorizationGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a specific audit by ID' })
   @ApiParam({
@@ -142,6 +148,7 @@ export class AuditController {
     return audit;
   }
 
+  // @UseGuards(AuthorizationGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Update a specific audit by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'The ID of the audit' })
@@ -167,6 +174,7 @@ export class AuditController {
     return audit;
   }
 
+  // @UseGuards(AuthorizationGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific audit by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'The ID of the audit' })
@@ -188,18 +196,17 @@ export class AuditController {
     return audit;
   }
 
-  @Post('mint')
-  @ApiOperation({ summary: 'Mint an NFT for an audit' })
-  @ApiResponse({
-    status: 200,
-    description: 'NFT has been successfully minted.',
-  })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
-  @UsePipes(new ZodValidationPipe(MintNftSchema))
-  async mint(@Body() mintNftDto: MintNftDto) {
-    this.logger.log('Minting NFT for audit', 'AuditController - mint');
-    const result = await this.auditService.mintNFT(mintNftDto);
-    this.logger.log('NFT successfully minted', 'AuditController - mint');
-    return result;
+  // TODO: its only for test purpoises
+  @Post('web3')
+  // async mintPolygon(
+  //   @Body(new ZodValidationPipe(MintNftSchema))
+  //   mintNftDto: MintNftDto,
+  // ) {
+  //   return this.auditService.mintNFTPolygon(mintNftDto);
+  // }
+  async owner() {
+    // return this.auditService.owner();
+
+    console.log('call');
   }
 }

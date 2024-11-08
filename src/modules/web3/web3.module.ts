@@ -8,9 +8,16 @@ import { Web3Service } from './web3.service';
   imports: [ConfigModule],
   providers: [
     {
-      provide: 'Web3',
+      provide: 'CeloWeb3',
       useFactory: (configService: ConfigService) => {
-        return new Web3(configService.get('INFURA_URL'));
+        return new Web3(configService.get('CELO_RPC_URL')); // Use Celo RPC URL from config
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: 'PolygonWeb3',
+      useFactory: (configService: ConfigService) => {
+        return new Web3(configService.get('POLYGON_RPC_URL')); // Use Polygon RPC URL from config
       },
       inject: [ConfigService],
     },

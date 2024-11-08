@@ -20,7 +20,6 @@ import { UpdateAuditDto } from '../../dtos/update-audit.dto';
 describe('AuditService', () => {
   let service: AuditService;
   let prisma: DeepMockProxy<PrismaService>;
-  let web3Service: DeepMockProxy<Web3Service>;
   let logger: DeepMockProxy<Logger>;
 
   beforeEach(async () => {
@@ -44,7 +43,6 @@ describe('AuditService', () => {
 
     service = module.get<AuditService>(AuditService);
     prisma = module.get(PrismaService) as DeepMockProxy<PrismaService>;
-    web3Service = module.get(Web3Service) as DeepMockProxy<Web3Service>;
     logger = module.get(WINSTON_MODULE_NEST_PROVIDER) as DeepMockProxy<Logger>;
   });
 

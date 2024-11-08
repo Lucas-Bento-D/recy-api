@@ -10,17 +10,12 @@ const MaterialSchema = z.object({
 
 export const CreateRecyclingReportSchema = z.object({
   submittedBy: z.string().min(1, 'Submitter name cannot be empty'),
-  reportDate: z.preprocess((arg) => {
-    if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-  }, z.date().max(new Date(), 'Report date cannot be in the future')),
-  phone: z
-    .string()
-    .regex(
-      /^\+55\s?\d{2}\s?(9\d{4}\s?\d{4}|\d{4}\s?\d{4})$/,
-      'Invalid Brazilian phone number format',
-    )
-    .or(z.literal(''))
+  reportDate: z
+    .preprocess((arg) => {
+      if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+    }, z.date().max(new Date(), 'Report date cannot be in the future'))
     .optional(),
+  phone: z.string().optional(),
   materials: z
     .array(MaterialSchema)
     .min(1, 'At least one material must be submitted'),

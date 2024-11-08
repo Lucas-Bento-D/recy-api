@@ -4,11 +4,13 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 
+import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { UploadFileDto } from './dtos/upload-file.dto';
 import { UploadService } from './upload.service';
 
@@ -17,6 +19,7 @@ import { UploadService } from './upload.service';
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
+  @UseGuards(AuthorizationGuard)
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
@@ -29,12 +32,10 @@ export class UploadController {
       }),
     )
     file: Express.Multer.File,
-    @Query('bucket') bucketName: string,
   ) {
     const options: UploadFileDto = {
       fileName: file.originalname,
       file: file.buffer,
-      bucketName: bucketName || process.env.AWS_S3_BUCKET_NAME,
     };
 
     await this.uploadService.upload(options);

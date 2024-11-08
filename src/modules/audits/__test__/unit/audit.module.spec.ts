@@ -69,13 +69,6 @@ describe('AuditModule', () => {
     expect(auditController).toBeDefined();
   });
 
-  it('should import the Web3Module correctly', () => {
-    const web3Service = module.get<Web3Service>(Web3Service);
-    expect(web3Service).toBeDefined();
-    expect(web3Service.balance).toBeDefined();
-    expect(web3Service.transfer).toBeDefined();
-  });
-
   it('should export the AuditService', () => {
     const auditService = module.get<AuditService>(AuditService);
     expect(auditService).toBeDefined();

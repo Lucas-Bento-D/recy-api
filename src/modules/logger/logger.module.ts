@@ -10,4 +10,4 @@ import { winstonLoggerOptions } from './logger.config';
   imports: [WinstonModule.forRoot(winstonLoggerOptions)],
   exports: [WinstonModule],
 })
-export class LoggerModule { }
+export class LoggerModule {}

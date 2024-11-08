@@ -13,4 +13,4 @@ import { AuditService } from './audit.service';
   controllers: [AuditController],
   exports: [AuditService],
 })
-export class AuditModule { }
+export class AuditModule {}

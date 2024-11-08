@@ -6,10 +6,12 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RecyclingReport } from '@prisma/client';
 
+import { AuthorizationGuard } from '../authorization/authorization.guard';
 import {
   CreateRecyclingReportDto,
   CreateRecyclingReportSchema,
@@ -25,6 +27,7 @@ export class RecyclingReportController {
     private readonly recyclingReportService: RecyclingReportService,
   ) {}
 
+  @UseGuards(AuthorizationGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new recycling report' })
   @ApiResponse({
@@ -45,6 +48,7 @@ export class RecyclingReportController {
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }
 
+  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
   @ApiResponse({
@@ -55,6 +59,7 @@ export class RecyclingReportController {
     return this.recyclingReportService.findAllRecyclingReports();
   }
 
+  @UseGuards(AuthorizationGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a recycling report by ID' })
   @ApiResponse({
@@ -71,6 +76,7 @@ export class RecyclingReportController {
     return this.recyclingReportService.findRecyclingReportById(id);
   }
 
+  @UseGuards(AuthorizationGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Update a recycling report by ID' })
   @ApiResponse({
@@ -95,6 +101,7 @@ export class RecyclingReportController {
     );
   }
 
+  @UseGuards(AuthorizationGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a recycling report by ID' })
   @ApiResponse({

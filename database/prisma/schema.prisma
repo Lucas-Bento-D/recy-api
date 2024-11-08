@@ -57,6 +57,7 @@ model RecyclingReport {
   materials     Json
   walletAddress String?
   evidenceUrl   String
+  metadata      Json?    // New column for storing metadata
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
 

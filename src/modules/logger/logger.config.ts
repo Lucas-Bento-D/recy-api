@@ -9,8 +9,9 @@ const devFormat = format.combine(
   format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   format.errors({ stack: true }),
   format.printf(({ timestamp, level, message, stack, context }) => {
-    return `${timestamp} - [${level}] - ${context ? '[' + context + '] ' : ''}${stack || message
-      }`;
+    return `${timestamp} - [${level}] - ${context ? '[' + context + '] ' : ''}${
+      stack || message
+    }`;
   }),
 );
 
