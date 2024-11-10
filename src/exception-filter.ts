@@ -14,7 +14,7 @@ import { ZodError, ZodIssue } from 'zod';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly logger: Logger) {}
+  constructor(private readonly logger: Logger) { }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -85,7 +85,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private getResponseMetadata(exception: unknown): ResponseMetadata {
-    console.log(exception);
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | object =
       'Internal server error, contact support and provide the errorId';
@@ -94,9 +93,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof ZodError) {
       return this.handleZodError(exception);
     }
+
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       return this.handlePrismaError(exception);
     }
+
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const responseMessage = exception.getResponse();
