@@ -1,0 +1,286 @@
+import { INestApplication, VersioningType } from '@nestjs/common';
+import { NotFoundException, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import request from 'supertest';
+import { Logger } from 'winston';
+
+import { CreateRecyclingReportDto } from '../../dtos/create-recycling-report.dto';
+import { ResidueType } from '../../dtos/residue-type.enum';
+import { UpdateRecyclingReportDto } from '../../dtos/update-recycling-report.dto';
+import { RecyclingReportController } from '../../recycling-report.controller';
+import { RecyclingReportService } from '../../recycling-report.service';
+
+describe('RecyclingReportController (e2e)', () => {
+  let app: INestApplication;
+  let service: RecyclingReportService;
+  let logger: DeepMockProxy<Logger>;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      controllers: [RecyclingReportController],
+      providers: [
+        {
+          provide: RecyclingReportService,
+          useValue: {
+            createRecyclingReport: jest.fn(),
+            findAllRecyclingReports: jest.fn(),
+            findRecyclingReportById: jest.fn(),
+            updateRecyclingReport: jest.fn(),
+            deleteRecyclingReport: jest.fn(),
+          },
+        },
+        {
+          provide: WINSTON_MODULE_NEST_PROVIDER,
+          useValue: mockDeep<Logger>(),
+        },
+      ],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ transform: true }));
+    app.enableVersioning({ type: VersioningType.URI });
+
+    await app.init();
+
+    service = moduleFixture.get<RecyclingReportService>(RecyclingReportService);
+    logger = moduleFixture.get(
+      WINSTON_MODULE_NEST_PROVIDER,
+    ) as DeepMockProxy<Logger>;
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  describe('/POST /v1/recycling-reports', () => {
+    it('should create a recycling report successfully', async () => {
+      const createDto: CreateRecyclingReportDto = {
+        submittedBy: 'user123',
+        reportDate: new Date(),
+        phone: '+55 11 912345678',
+        materials: [{ materialType: ResidueType.PLASTIC, weightKg: 12.5 }],
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        evidenceUrl: 'https://example.com/evidence.jpg',
+      };
+
+      jest.spyOn(service, 'createRecyclingReport').mockResolvedValue({
+        id: 'report123',
+        submittedBy: 'user123',
+        reportDate: new Date(),
+        audited: false,
+        phone: '+55 11 912345678',
+        materials: [{ materialType: ResidueType.PLASTIC, weightKg: 12.5 }],
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        evidenceUrl: 'https://example.com/evidence.jpg',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await request(app.getHttpServer())
+        .post('/v1/recycling-reports')
+        .send(createDto)
+        .expect(201)
+        .expect((res) => {
+          expect(res.body).toEqual(
+            expect.objectContaining({ id: 'report123' }),
+          );
+          expect(service.createRecyclingReport).toHaveBeenCalledWith(createDto);
+        });
+    });
+
+    it('should throw BadRequestException when validation fails', async () => {
+      const invalidDto: any = { submittedBy: '', materials: [] };
+
+      await request(app.getHttpServer())
+        .post('/v1/recycling-reports')
+        .send(invalidDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('message');
+        });
+    });
+  });
+
+  describe('/GET /v1/recycling-reports', () => {
+    it('should retrieve all recycling reports', async () => {
+      const reports = [
+        {
+          id: 'report123',
+          submittedBy: 'user123',
+          reportDate: new Date(),
+          audited: false,
+          phone: '+55 11 912345678',
+          materials: [{ materialType: ResidueType.PLASTIC, weightKg: 12.5 }],
+          walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+          evidenceUrl: 'https://example.com/evidence.jpg',
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      jest.spyOn(service, 'findAllRecyclingReports').mockResolvedValue(reports);
+
+      await request(app.getHttpServer())
+        .get('/v1/recycling-reports')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: 'report123' }),
+            ]),
+          );
+          expect(service.findAllRecyclingReports).toHaveBeenCalled();
+        });
+    });
+  });
+
+  describe('/GET /v1/recycling-reports/:id', () => {
+    it('should retrieve a recycling report by ID', async () => {
+      const report = {
+        id: 'report123',
+        submittedBy: 'user123',
+        reportDate: new Date(),
+        audited: false,
+        phone: '+55 11 912345678',
+        materials: [{ materialType: ResidueType.PLASTIC, weightKg: 12.5 }],
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        evidenceUrl: 'https://example.com/evidence.jpg',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest.spyOn(service, 'findRecyclingReportById').mockResolvedValue(report);
+
+      await request(app.getHttpServer())
+        .get('/v1/recycling-reports/report123')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual(
+            expect.objectContaining({ id: 'report123' }),
+          );
+          expect(service.findRecyclingReportById).toHaveBeenCalledWith(
+            'report123',
+          );
+        });
+    });
+
+    it('should return 404 if recycling report not found', async () => {
+      jest
+        .spyOn(service, 'findRecyclingReportById')
+        .mockRejectedValue(new NotFoundException());
+
+      await request(app.getHttpServer())
+        .get('/v1/recycling-reports/invalidId')
+        .expect(404)
+        .expect((res) => {
+          expect(res.body.message).toContain('Recycling report not found');
+        });
+    });
+  });
+
+  describe('/PUT /v1/recycling-reports/:id', () => {
+    it('should update a recycling report successfully', async () => {
+      const updateDto: UpdateRecyclingReportDto = {
+        materials: [{ materialType: ResidueType.METAL, weightKg: 5 }],
+      };
+
+      const updatedReport = {
+        id: 'report123',
+        submittedBy: 'user123',
+        reportDate: new Date(),
+        audited: false,
+        phone: '+55 11 912345678',
+        materials: [{ materialType: ResidueType.PLASTIC, weightKg: 12.5 }],
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        evidenceUrl: 'https://example.com/evidence.jpg',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest
+        .spyOn(service, 'updateRecyclingReport')
+        .mockResolvedValue(updatedReport);
+
+      await request(app.getHttpServer())
+        .put('/v1/recycling-reports/report123')
+        .send(updateDto)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual(
+            expect.objectContaining({ id: 'report123' }),
+          );
+          expect(service.updateRecyclingReport).toHaveBeenCalledWith(
+            'report123',
+            updateDto,
+          );
+        });
+    });
+
+    it('should return 404 if recycling report to update not found', async () => {
+      jest
+        .spyOn(service, 'updateRecyclingReport')
+        .mockRejectedValue(new NotFoundException());
+
+      await request(app.getHttpServer())
+        .put('/v1/recycling-reports/invalidId')
+        .send({ materials: [{ materialType: ResidueType.METAL, weightKg: 5 }] })
+        .expect(404)
+        .expect((res) => {
+          expect(res.body.message).toContain('Recycling report not found');
+        });
+    });
+  });
+
+  describe('/DELETE /v1/recycling-reports/:id', () => {
+    it('should delete a recycling report successfully', async () => {
+      const deletedReport = {
+        id: 'report123',
+        submittedBy: 'user123',
+        reportDate: new Date(),
+        audited: false,
+        phone: '+55 11 912345678',
+        materials: [],
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        evidenceUrl: 'https://example.com/evidence.jpg',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest
+        .spyOn(service, 'deleteRecyclingReport')
+        .mockResolvedValue(deletedReport);
+
+      await request(app.getHttpServer())
+        .delete('/v1/recycling-reports/report123')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual(
+            expect.objectContaining({ id: 'report123' }),
+          );
+          expect(service.deleteRecyclingReport).toHaveBeenCalledWith(
+            'report123',
+          );
+        });
+    });
+
+    it('should return 404 if recycling report to delete not found', async () => {
+      jest
+        .spyOn(service, 'deleteRecyclingReport')
+        .mockRejectedValue(new NotFoundException());
+
+      await request(app.getHttpServer())
+        .delete('/v1/recycling-reports/invalidId')
+        .expect(404)
+        .expect((res) => {
+          expect(res.body.message).toContain('Recycling report not found');
+        });
+    });
+  });
+});
