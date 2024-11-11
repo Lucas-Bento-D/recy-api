@@ -9,7 +9,9 @@ const MaterialSchema = z.object({
 });
 
 export const CreateRecyclingReportSchema = z.object({
-  submittedBy: z.string().min(1, 'Submitter name cannot be empty'),
+  submittedBy: z
+    .string()
+    .min(1, 'ID of the user submitting needs to be defined'),
   reportDate: z
     .preprocess((arg) => {
       if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);

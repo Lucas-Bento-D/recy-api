@@ -27,14 +27,14 @@ import {
 import { RecyclingReportService } from './recycling-report.service';
 
 @ApiTags('recycling-reports')
-// @UseGuards(AuthorizationGuard)
+@UseGuards(AuthorizationGuard)
 @Controller({ path: 'recycling-reports', version: '1' })
 export class RecyclingReportController {
   constructor(
     private readonly recyclingReportService: RecyclingReportService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: Logger,
-  ) {}
+  ) { }
 
   @Post()
   @ApiOperation({ summary: 'Create a new recycling report' })
