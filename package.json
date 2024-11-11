@@ -27,7 +27,7 @@
     "test:unit": "jest --config ./test/jest.unit.ts",
     "test:type": "tsc --noEmit",
     "test:unit:watch": "npm run test:unit -- --watch",
-    "test:cov": "jest --coverage",
+    "test:cov": "jest --config ./test/jest.shared.ts --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --runInBand --config ./test/jest.e2e.ts --forceExit",
     "test:e2e:watch": "npm run test:e2e -- --watch",
