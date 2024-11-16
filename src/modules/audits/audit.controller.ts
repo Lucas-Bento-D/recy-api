@@ -29,6 +29,7 @@ import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { PermissionsGuard } from '../authorization/permission.guard';
 import { MintCeloDto, MintCeloSchema } from '../web3/dtos/celo/mint';
 import { MintNftDto, MintNftSchema } from '../web3/dtos/polygon/mint-nft';
+import { AuditPermissions } from './audit.permissions';
 import { AuditService } from './audit.service';
 import { CreateAuditDto, CreateAuditSchema } from './dtos/create-audit.dto';
 import { UpdateAuditDto, UpdateAuditSchema } from './dtos/update-audit.dto';
@@ -42,7 +43,7 @@ export class AuditController {
     private readonly logger: Logger,
   ) {}
 
-  @UseGuards(PermissionsGuard(USER_PERMISSION_SCOPES.auditor))
+  @UseGuards(PermissionsGuard(AuditPermissions))
   @UseGuards(AuthorizationGuard)
   @Post()
   @ApiOperation({ summary: 'Create an audit' })

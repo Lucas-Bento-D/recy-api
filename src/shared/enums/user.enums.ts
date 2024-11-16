@@ -47,7 +47,23 @@ export const USER_PERMISSION_SCOPES: Record<UserRole, Permission[]> = {
     Permission.READ_REPORTS,
     Permission.WRITE_REPORTS,
   ],
-  [UserRole.PARTNER]: [Permission.READ_REPORTS, Permission.WRITE_REPORTS],
-  [UserRole.RECYCLER]: [Permission.READ_REPORTS],
-  [UserRole.WASTE_GENERATOR]: [Permission.READ_REPORTS],
+  [UserRole.PARTNER]: [
+    Permission.READ_AUDITS,
+    Permission.WRITE_AUDITS,
+    Permission.UPDATE_AUDITS,
+    Permission.READ_REPORTS,
+    Permission.WRITE_REPORTS,
+    Permission.UPDATE_REPORTS,
+    Permission.WRITE_UPLOAD,
+    Permission.DELETE_REPORTS,
+    Permission.DELETE_AUDITS,
+    Permission.UPDATE_AUDITS,
+    Permission.UPDATE_REPORTS,
+  ],
+
+  [UserRole.RECYCLER]: [Permission.READ_REPORTS, Permission.WRITE_REPORTS],
+  [UserRole.WASTE_GENERATOR]: [
+    Permission.READ_REPORTS,
+    Permission.WRITE_REPORTS,
+  ],
 };
