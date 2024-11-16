@@ -22,9 +22,11 @@ import {
 import { Audit } from '@prisma/client';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
+import { USER_PERMISSION_SCOPES, UserRole } from '@/shared/enums/user.enums';
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
+import { PermissionsGuard } from '../authorization/permission.guard';
 import { MintCeloDto, MintCeloSchema } from '../web3/dtos/celo/mint';
 import { MintNftDto, MintNftSchema } from '../web3/dtos/polygon/mint-nft';
 import { AuditService } from './audit.service';
@@ -40,7 +42,8 @@ export class AuditController {
     private readonly logger: Logger,
   ) {}
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(PermissionsGuard(USER_PERMISSION_SCOPES.auditor))
+  @UseGuards(AuthorizationGuard)
   @Post()
   @ApiOperation({ summary: 'Create an audit' })
   @ApiResponse({
@@ -86,7 +89,8 @@ export class AuditController {
     return audit;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(PermissionsGuard(USER_PERMISSION_SCOPES.auditor))
+  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all audits' })
   @ApiResponse({
@@ -121,7 +125,8 @@ export class AuditController {
     return audits;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(PermissionsGuard(USER_PERMISSION_SCOPES.auditor))
+  @UseGuards(AuthorizationGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a specific audit by ID' })
   @ApiParam({
@@ -148,7 +153,8 @@ export class AuditController {
     return audit;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(PermissionsGuard(USER_PERMISSION_SCOPES.auditor))
+  @UseGuards(AuthorizationGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Update a specific audit by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'The ID of the audit' })
@@ -174,7 +180,8 @@ export class AuditController {
     return audit;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(PermissionsGuard(USER_PERMISSION_SCOPES.auditor))
+  @UseGuards(AuthorizationGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific audit by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'The ID of the audit' })

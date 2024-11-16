@@ -11,7 +11,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
+import { PermissionsGuard } from '../authorization/permission.guard';
 import { UploadFileDto } from './dtos/upload-file.dto';
+import { UploadPermissions } from './upload.permissions';
 import { UploadService } from './upload.service';
 
 @ApiTags('upload')
@@ -19,6 +21,7 @@ import { UploadService } from './upload.service';
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
+  @UseGuards(PermissionsGuard(UploadPermissions))
   @UseGuards(AuthorizationGuard)
   @Post()
   @UseInterceptors(FileInterceptor('file'))

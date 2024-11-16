@@ -19,7 +19,12 @@ export class AuthorizationGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
-    const validateAccessToken = promisify(auth());
+    const validateAccessToken = promisify(
+      auth({
+        issuerBaseURL: process.env.AUTH0_DOMAIN,
+        audience: process.env.AUTH0_AUDIENCE,
+      }),
+    );
 
     try {
       await validateAccessToken(request, response);
