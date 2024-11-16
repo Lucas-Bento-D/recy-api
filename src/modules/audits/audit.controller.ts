@@ -40,7 +40,7 @@ export class AuditController {
     private readonly logger: Logger,
   ) {}
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(AuthorizationGuard)
   @Post()
   @ApiOperation({ summary: 'Create an audit' })
   @ApiResponse({
@@ -86,7 +86,7 @@ export class AuditController {
     return audit;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all audits' })
   @ApiResponse({
@@ -121,7 +121,7 @@ export class AuditController {
     return audits;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(AuthorizationGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a specific audit by ID' })
   @ApiParam({
@@ -174,7 +174,7 @@ export class AuditController {
     return audit;
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(AuthorizationGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific audit by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'The ID of the audit' })
