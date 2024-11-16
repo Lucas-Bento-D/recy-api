@@ -12,23 +12,23 @@ import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { MailDto } from '../mail/dtos/mail.dto';
-import { CalculatorService } from './calculator.service';
 import {
   ResultDto,
   ResultDtoSchema,
   SupportDto,
   SupportDtoSchema,
 } from './dtos';
-@ApiTags('calculator')
-@Controller({ path: 'calculator', version: '1' })
-export class CalculatorController {
+import { FootprintService } from './footprint.service';
+@ApiTags('footprint')
+@Controller({ path: 'footprint', version: '1' })
+export class FootprintController {
   constructor(
-    private readonly calculatorService: CalculatorService,
+    private readonly footprintService: FootprintService,
     private readonly mailService: MailService,
   ) {}
 
   @UseGuards(AuthorizationGuard)
-  @Post('contact')
+  @Post('calculator/contact')
   @ApiOperation({
     summary: 'Request support',
     description: 'Returns contact information',
@@ -38,7 +38,7 @@ export class CalculatorController {
   })
   @UsePipes(new ZodValidationPipe(SupportDtoSchema))
   async contact(@Body() supportDto: SupportDto) {
-    await this.calculatorService.saveContactInfo(supportDto);
+    await this.footprintService.saveContactInfo(supportDto);
 
     const mail: MailDto = {
       to: supportDto.email,
@@ -65,7 +65,7 @@ export class CalculatorController {
   }
 
   @UseGuards(AuthorizationGuard)
-  @Post('result')
+  @Post('calculator/result')
   @ApiOperation({
     summary: 'Save result',
     description: 'Save result of the calculator',
@@ -77,7 +77,7 @@ export class CalculatorController {
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @UsePipes(new ZodValidationPipe(ResultDtoSchema))
   async result(@Body() resultDto: ResultDto) {
-    await this.calculatorService.saveResultInfo(resultDto);
+    await this.footprintService.saveResultInfo(resultDto);
 
     return { message: 'Result saved successfully' };
   }

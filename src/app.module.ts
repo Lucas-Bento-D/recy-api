@@ -4,7 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuditModule } from './modules/audits/audit.module';
-import { CalculatorModule } from './modules/calculator';
+import { FootprintModule } from './modules/footprint';
 import { HealthModule } from './modules/health/health.module';
 import { LoggerModule } from './modules/logger/logger.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -21,7 +21,7 @@ import { Web3Module } from './modules/web3/web3.module';
     Web3Module,
     UploadModule,
     LoggerModule,
-    CalculatorModule,
+    FootprintModule,
     MailModule,
     RecyclingReportModule,
     AuditModule,
