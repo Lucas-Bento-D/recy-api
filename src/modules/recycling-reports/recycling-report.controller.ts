@@ -9,10 +9,13 @@ import {
   Post,
   Put,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RecyclingReport } from '@prisma/client';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+
+import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import {
@@ -22,6 +25,7 @@ import {
 } from './dtos/create-recycling-report.dto';
 import {
   UpdateRecyclingReportDto,
+  UpdateRecyclingReportSchema,
   UpdateRecyclingReportSwaggerDto,
 } from './dtos/update-recycling-report.dto';
 import { RecyclingReportService } from './recycling-report.service';
@@ -48,7 +52,8 @@ export class RecyclingReportController {
   })
   @ApiBody({ type: CreateRecyclingReportSwaggerDto })
   async createRecyclingReport(
-    @Body() createRecyclingReportDto: CreateRecyclingReportDto,
+    @Body(new ZodValidationPipe(CreateRecyclingReportSchema))
+    createRecyclingReportDto: CreateRecyclingReportDto,
   ): Promise<RecyclingReport> {
     this.logger.log(
       'Creating a new recycling report',
@@ -135,7 +140,8 @@ export class RecyclingReportController {
   @ApiBody({ type: UpdateRecyclingReportSwaggerDto })
   async updateRecyclingReport(
     @Param('id') id: string,
-    @Body() updateRecyclingReportDto: UpdateRecyclingReportDto,
+    @Body(new ZodValidationPipe(UpdateRecyclingReportSchema))
+    updateRecyclingReportDto: UpdateRecyclingReportDto,
   ): Promise<RecyclingReport> {
     this.logger.log(
       `Updating recycling report with ID: ${id}`,

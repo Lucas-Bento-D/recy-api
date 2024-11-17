@@ -25,7 +25,7 @@ describe('RecyclingReportModule', () => {
     module = await Test.createTestingModule({
       imports: [RecyclingReportModule],
     })
-      .overrideProvider(Logger) // Injetando o Logger diretamente
+      .overrideProvider(Logger)
       .useValue(mockLogger)
       .compile();
 
@@ -35,7 +35,7 @@ describe('RecyclingReportModule', () => {
     recyclingReportController = module.get<RecyclingReportController>(
       RecyclingReportController,
     );
-    logger = mockLogger as unknown as Logger; // Atribuindo mockLogger como Logger
+    logger = mockLogger as unknown as Logger;
 
     app = module.createNestApplication();
     await app.init();
