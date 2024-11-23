@@ -60,28 +60,8 @@ export class AuditService {
       });
 
       return audit;
-    } catch (error: unknown) {
-      const err = error as Error;
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2003') {
-          throw new BadRequestException(
-            `Foreign key constraint failed on the field: ${error.meta?.field_name}`,
-          );
-        }
-
-        if (error.code === 'P2002') {
-          throw new BadRequestException(
-            `Unique constraint failed on the field: ${error.meta?.target}`,
-          );
-        }
-      }
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException('An unexpected error occurred.');
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -89,23 +69,7 @@ export class AuditService {
     try {
       return await this.prisma.audit.findMany();
     } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  private handleError(error: unknown): never {
-    if (error instanceof Prisma.PrismaClientInitializationError) {
-      throw new ServiceUnavailableException(
-        'Database connection error. Please try again later.',
-      );
-    } else if (error instanceof Prisma.PrismaClientRustPanicError) {
-      throw new GatewayTimeoutException(
-        'Database engine encountered an unexpected error. Please try again later.',
-      );
-    } else {
-      throw new InternalServerErrorException(
-        'An unexpected error occurred while retrieving audits. Please try again later.',
-      );
+      throw error;
     }
   }
 
@@ -151,7 +115,7 @@ export class AuditService {
     return deletedAudit;
   }
 
-  // Other functions...
+  // Web3
 
   async mintNFTPolygon(data: MintNftDto) {
     return this.web3Service.mintNFTPolygon(data);
