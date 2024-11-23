@@ -30,6 +30,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception,
     );
 
+    this.logger.error(
+      {
+        errorId: responseBody.errorId,
+        path: request.url,
+        statusCode: status,
+        message,
+        details,
+      },
+      `Handling error response for ${request.url}`,
+    );
+
     response.status(status).json(responseBody);
   }
 
@@ -85,7 +96,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private getResponseMetadata(exception: unknown): ResponseMetadata {
-    console.log(exception);
+    this.logger.debug('Processing exception:', exception);
+
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | object =
       'Internal server error, contact support and provide the errorId';
@@ -130,6 +142,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         path: err.path,
       })),
     };
+
+    this.logger.warn('Zod validation error occurred', message);
+
     return { status, message, details: null };
   }
 
@@ -147,6 +162,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = HttpStatus.NOT_FOUND;
       message = 'Record not found for the specified operation.';
     }
+
+    this.logger.error('Prisma database error occurred', {
+      code: exception.code,
+      message,
+      meta: exception.meta,
+    });
 
     return { status, message, details: null };
   }
