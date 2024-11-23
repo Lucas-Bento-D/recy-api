@@ -11,4 +11,4 @@ import { RecyclingReportService } from './recycling-report.service';
   providers: [RecyclingReportService, PrismaService],
   exports: [RecyclingReportService],
 })
-export class RecyclingReportModule {}
+export class RecyclingReportModule { }
