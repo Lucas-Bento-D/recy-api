@@ -68,12 +68,12 @@ model RecyclingReport {
 model Audit {
   id        String   @id @default(uuid())
   reportId  String
-  auditorId String
+  auditorId String?
   audited   Boolean  @default(false)
   comments  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   recyclingReport RecyclingReport @relation("ReportAudits", fields: [reportId], references: [id])
-  auditor         User            @relation("UserAudits", fields: [auditorId], references: [id])
+  auditor         User?            @relation("UserAudits", fields: [auditorId], references: [id])
 }

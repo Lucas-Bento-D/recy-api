@@ -39,8 +39,5 @@ export async function bootstrap() {
 
   const port = process.env.PORT || 3333;
   await app.listen(port);
-
-  logger.log(
-    `Started application in NODE_ENV=${process.env.NODE_ENV} on port ${process.env.PORT}`,
-  );
+  logger.log(`Application running on port ${port}`, 'Bootstrap');
 }

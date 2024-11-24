@@ -6,9 +6,18 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RecyclingReport } from '@prisma/client';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
@@ -38,12 +47,20 @@ export class RecyclingReportController {
     status: 400,
     description: 'Bad request. Validation errors or other issues.',
   })
+  @UseInterceptors(FileInterceptor('evidenceFile'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiBody({ type: CreateRecyclingReportSwaggerDto })
   async createRecyclingReport(
     @Body() createRecyclingReportDto: CreateRecyclingReportDto,
+    @UploadedFile() evidenceFile: Express.Multer.File,
   ): Promise<RecyclingReport> {
+    const mergedData = {
+      ...createRecyclingReportDto,
+      evidenceFile: evidenceFile?.buffer,
+    };
+
     const parsedData: CreateRecyclingReportDto =
-      CreateRecyclingReportSchema.parse(createRecyclingReportDto);
+      CreateRecyclingReportSchema.parse(mergedData);
 
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }

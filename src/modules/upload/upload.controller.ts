@@ -2,7 +2,6 @@ import {
   Controller,
   ParseFilePipe,
   Post,
-  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,

@@ -4,12 +4,18 @@ import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
+import { AuditService } from '../audits/audit.service';
+import { UploadService } from '../upload/upload.service';
 import { CreateRecyclingReportDto } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
 
 @Injectable()
 export class RecyclingReportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   private async checkUserExists(userId: string): Promise<User> {
     const user = await this.prisma.user.findUnique({
@@ -32,29 +38,52 @@ export class RecyclingReportService {
       phone,
       materials,
       walletAddress,
+      evidenceFile,
       evidenceUrl,
     } = createRecyclingReportDto;
 
     await this.checkUserExists(submittedBy);
 
-    const jsonMaterials: Prisma.JsonArray =
-      materials as unknown as Prisma.JsonArray;
-
-    // Gera um ULID para o ID do relatório de reciclagem
+    // Generate ULID
     const reportId = ulid();
 
-    return this.prisma.recyclingReport.create({
+    // If no evidenceUrl is provided, handle file upload to S3
+    let evidenceFileUrl = '';
+
+    if (!evidenceUrl && evidenceFile) {
+      // Upload evidenceFile to S3 and get the URL
+      const options = {
+        file: evidenceFile,
+        fileName: reportId,
+      };
+
+      evidenceFileUrl = await this.uploadService.upload(options);
+    }
+
+    // Create recycling report
+    const createdReport = await this.prisma.recyclingReport.create({
       data: {
         id: reportId,
         submittedBy: submittedBy,
         reportDate,
         audited: false,
         phone,
-        materials: jsonMaterials,
+        materials,
         walletAddress,
-        evidenceUrl,
+        evidenceUrl: evidenceUrl || evidenceFileUrl,
+        metadata: {},
       },
     });
+
+    // Create audit entry for the recycling report
+    await this.auditService.createAudit({
+      reportId,
+      audited: false,
+      auditorId: null,
+      comments: '',
+    });
+
+    return createdReport;
   }
 
   async findAllRecyclingReports(): Promise<RecyclingReport[]> {
@@ -103,14 +132,11 @@ export class RecyclingReportService {
       await this.checkUserExists(submittedBy);
     }
 
-    const jsonMaterials: Prisma.JsonArray =
-      materials as unknown as Prisma.JsonArray;
-
     return this.prisma.recyclingReport.update({
       where: { id },
       data: {
         ...updateRecyclingReportDto,
-        materials: jsonMaterials,
+        materials,
       },
     });
   }
