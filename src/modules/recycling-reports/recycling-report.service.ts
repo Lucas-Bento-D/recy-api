@@ -6,7 +6,7 @@ import {
 import { RecyclingReport, User } from '@prisma/client';
 import { createCanvas, loadImage } from 'canvas';
 import { existsSync } from 'fs';
-import path, { resolve } from 'path';
+import path from 'path';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -15,6 +15,7 @@ import { UploadService } from '../../shared/modules/upload/upload.service';
 import { AuditService } from '../audits/audit.service';
 import { UserService } from '../users/user.service';
 import { CreateRecyclingReportDto } from './dtos/create-recycling-report.dto';
+import { ResidueType } from './dtos/residue-type.enum';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
 
 interface Metadata {
@@ -22,8 +23,10 @@ interface Metadata {
   description: string;
   name: string;
   image?: string | Buffer;
-  [key: string]: any;
+  [key: string]: unknown;
 }
+
+type MaterialTotals = Record<ResidueType, number | undefined>;
 
 @Injectable()
 export class RecyclingReportService {
@@ -33,6 +36,11 @@ export class RecyclingReportService {
     private readonly uploadService: UploadService,
     private readonly userService: UserService,
   ) {}
+
+  // TODO: Improvments
+  // await Promise.all([])
+  // cache template image
+  // move calculateMaterialTotals, formatMaterialTotals for diferente function
 
   private async generateReportImage(
     metadata: Metadata,
@@ -74,20 +82,20 @@ export class RecyclingReportService {
       const textSpacing = 40; // Increased spacing between lines
 
       // Draw left-side text with different colors
-      ctx.fillStyle = '#173C09'; // Green for labels
+      ctx.fillStyle = '#173C09';
       ctx.fillText('Issued by:', leftTextX, leftTextYStart);
 
-      ctx.fillStyle = '#0D4075'; // Blue for values
+      ctx.fillStyle = '#0D4075';
       ctx.fillText(user.email, leftTextX, leftTextYStart + textSpacing);
 
-      ctx.fillStyle = '#173C09'; // Green for labels
+      ctx.fillStyle = '#173C09';
       ctx.fillText(
         'Report Number:',
         leftTextX,
         leftTextYStart + textSpacing * 2,
       );
 
-      ctx.fillStyle = '#0D4075'; // Blue for values
+      ctx.fillStyle = '#0D4075';
       ctx.fillText(reportId, leftTextX, leftTextYStart + textSpacing * 3);
 
       // Filter and position materials for the right side
@@ -103,12 +111,12 @@ export class RecyclingReportService {
       let rightTextY = rightTextYStart;
       materials.forEach((attribute) => {
         // Draw the trait type above the attribute value
-        ctx.fillStyle = '#173C09'; // Green for trait type
+        ctx.fillStyle = '#173C09';
         ctx.fillText(attribute.trait_type, rightTextX, rightTextY);
 
         // Only draw the value if it's defined
         if (attribute.value) {
-          ctx.fillStyle = '#0D4075'; // Blue for value
+          ctx.fillStyle = '#0D4075';
           ctx.fillText(attribute.value, rightTextX, rightTextY + 30);
         }
 
@@ -198,6 +206,26 @@ export class RecyclingReportService {
       image: imageReportUrlUploaded,
     };
 
+    const materialTotals: MaterialTotals = materials.reduce(
+      (acc, { materialType, weightKg }) => {
+        if (!acc[materialType]) {
+          acc[materialType] = 0;
+        }
+        acc[materialType]! += weightKg; // Non-null assertion as it will be initialized
+        return acc;
+      },
+      {} as MaterialTotals,
+    );
+
+    // Format the material totals to two decimal places
+    const formattedMaterialTotals: { [key in ResidueType]?: number } = {};
+
+    for (const [key, value] of Object.entries(materialTotals)) {
+      formattedMaterialTotals[key as ResidueType] = parseFloat(
+        value!.toFixed(2),
+      ); // Ensure value is not undefined
+    }
+
     // Create the recycling report in the database
     // TODO: need to create value with total amount per materials
     const createdReport = await this.prisma.recyclingReport.create({
@@ -207,7 +235,7 @@ export class RecyclingReportService {
         reportDate,
         audited: false,
         phone,
-        materials,
+        materials: formattedMaterialTotals,
         walletAddress,
         evidenceUrl: evidenceUrl || evidenceFileUrl,
         metadata: metadataWithImage,

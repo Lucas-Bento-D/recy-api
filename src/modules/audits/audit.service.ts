@@ -3,17 +3,23 @@ import { Audit } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { UploadService } from '@/shared/modules/upload/upload.service';
 
 // import { MintCeloDto } from '../web3/dtos/celo/mint';
 // import { MintNftDto } from '../web3/dtos/polygon/mint-nft';
-import { Web3Service } from '../web3/web3.service';
+// import { Web3Service } from '../web3/web3.service';
 import { CreateAuditDto } from './dtos/create-audit.dto';
 import { UpdateAuditDto } from './dtos/update-audit.dto';
 
+interface Attribute {
+  trait_type: string;
+  value: string;
+}
 @Injectable()
 export class AuditService {
   constructor(
     private readonly prisma: PrismaService, // private readonly web3Service: Web3Service,
+    private readonly uploadService: UploadService,
   ) {}
 
   private async processAfterAuditValidated(auditId: string) {
@@ -39,7 +45,49 @@ export class AuditService {
       }
 
       if (recyclingReport) {
-        return true;
+        const metadata = recyclingReport.metadata as Record<string, any> | null;
+
+        // Filter out the 'Not Verified' attribute
+        const updatedMetadata = {
+          ...metadata, // Spread the existing metadata
+          attributes: (metadata?.attributes || []).filter(
+            (
+              attribute: Attribute, // Explicitly define the type for 'attribute'
+            ) =>
+              !(
+                attribute.trait_type === 'Audit' &&
+                attribute.value === 'Not Verified'
+              ),
+          ),
+          Audit: {
+            trait_type: 'Audit',
+            value: 'Verified', // New value to mark the report as audited
+          },
+        };
+
+        // Now update the recycling report with the new metadata
+        await this.prisma.recyclingReport.update({
+          where: { id: audit.reportId },
+          data: {
+            metadata: updatedMetadata, // Updated metadata
+          },
+        });
+
+        // Convert updatedMetadata to a JSON string and then to a Buffer
+        const bufferMetadata = Buffer.from(JSON.stringify(updatedMetadata));
+
+        const options = {
+          file: bufferMetadata,
+          fileName: audit.reportId,
+          type: 'application/json',
+        };
+
+        await this.uploadService.upload(options);
+
+        return audit;
+
+        // upload metadata on aws
+
         //   // Creating report on polygon after validate true
         //   async mintNFTPolygon(data: MintNftDto) {
         //     return this.web3Service.mintNFTPolygon(data);
@@ -55,8 +103,7 @@ export class AuditService {
         //   // 5) que mandou relatórios (e conectaram a carteira) na data entre esse mint de cRECY e o último mint de cRECY.
       }
     } catch (error) {
-      console.error('Error processing after audit validation:', error);
-      throw new Error('Error processing after audit validation');
+      throw new Error(`Error processing after audit validation: ${error}`);
     }
   }
 
@@ -122,6 +169,12 @@ export class AuditService {
     id: string,
     updateAuditDto: UpdateAuditDto,
   ): Promise<Audit> {
+    if (!updateAuditDto.auditorId) {
+      throw new NotFoundException(
+        'Auditor ID is required to updated an Audit.',
+      );
+    }
+
     const existingAudit = await this.prisma.audit.findUnique({ where: { id } });
 
     if (!existingAudit) {
@@ -133,7 +186,7 @@ export class AuditService {
       data: updateAuditDto,
     });
 
-    if (updatedAudit.audited) {
+    if (updatedAudit.audited && !existingAudit.audited) {
       await this.processAfterAuditValidated(updatedAudit.id);
     }
 
