@@ -6,12 +6,12 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './modules/audits/audit.module';
 import { FootprintModule } from './modules/footprint';
 import { HealthModule } from './modules/health/health.module';
-import { LoggerModule } from './modules/logger/logger.module';
-import { MailModule } from './modules/mail/mail.module';
 import { RecyclingReportModule } from './modules/recycling-reports';
-import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/users/user.module';
 import { Web3Module } from './modules/web3/web3.module';
+import { LoggerModule } from './shared/modules/logger/logger.module';
+import { MailModule } from './shared/modules/mail/mail.module';
+import { UploadModule } from './shared/modules/upload/upload.module';
 
 @Module({
   imports: [

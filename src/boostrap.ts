@@ -5,7 +5,7 @@ import winston from 'winston';
 
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './exception-filter';
-import { winstonLoggerOptions } from './modules/logger/logger.config';
+import { winstonLoggerOptions } from './shared/modules/logger/logger.config';
 import { setupSwagger } from './shared/swagger/swagger.controller';
 
 export async function bootstrap() {

@@ -35,7 +35,6 @@ export class AuditController {
   })
   @ApiResponse({
     status: 201,
-    schema: { example: CreateAuditSchema },
   })
   @UsePipes(new ZodValidationPipe(CreateAuditSchema))
   async create(@Body() createAuditDto: CreateAuditDto): Promise<Audit> {
@@ -51,7 +50,6 @@ export class AuditController {
   })
   @ApiResponse({
     status: 200,
-    schema: { example: [CreateAuditSchema] },
   })
   async findAll(): Promise<Audit[]> {
     return this.auditService.findAllAudits();
@@ -66,7 +64,6 @@ export class AuditController {
   })
   @ApiResponse({
     status: 200,
-    schema: { example: CreateAuditSchema },
   })
   async findOne(@Param('id') id: string): Promise<Audit> {
     return this.auditService.findAuditById(id);
@@ -81,7 +78,6 @@ export class AuditController {
   })
   @ApiResponse({
     status: 200,
-    schema: { example: UpdateAuditSchema },
   })
   async update(
     @Param('id') id: string,
@@ -100,7 +96,6 @@ export class AuditController {
   })
   @ApiResponse({
     status: 200,
-    schema: { example: CreateAuditSchema },
   })
   async remove(@Param('id') id: string): Promise<Audit> {
     return this.auditService.deleteAudit(id);

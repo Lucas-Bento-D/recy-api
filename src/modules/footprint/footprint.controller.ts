@@ -7,11 +7,11 @@ import {
 } from '@nestjs/swagger';
 
 import CalculatorSupportEmail from '@/emails';
-import { MailService } from '@/modules/mail/mail.service';
+import { MailService } from '@/shared/modules/mail/mail.service';
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
+import { MailDto } from '../../shared/modules/mail/dtos/mail.dto';
 import { AuthorizationGuard } from '../authorization/authorization.guard';
-import { MailDto } from '../mail/dtos/mail.dto';
 import {
   ResultDto,
   ResultDtoSchema,

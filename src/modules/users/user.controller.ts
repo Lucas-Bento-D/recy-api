@@ -88,16 +88,4 @@ export class UserController {
   async deleteUser(@Param('id') id: string): Promise<User> {
     return this.userService.deleteUser(id);
   }
-
-  @UseGuards(AuthorizationGuard)
-  @Get('email')
-  @ApiQuery({ name: 'email', type: 'string', description: 'User email' })
-  @ApiResponse({
-    status: 200,
-    description: 'The user with the specified email',
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async findUserByEmail(@Query('email') email: string): Promise<User> {
-    return this.userService.findUserByEmail(email);
-  }
 }

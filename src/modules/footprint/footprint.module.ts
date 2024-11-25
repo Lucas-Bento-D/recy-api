@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { MailModule } from '@/modules/mail';
+import { MailModule } from '@/shared/modules/mail';
 
 import { FootprintController } from './footprint.controller';
 import { FootprintService } from './footprint.service';
