@@ -7,6 +7,7 @@ import { RecyclingReport, User } from '@prisma/client';
 import { createCanvas, loadImage } from 'canvas';
 import { existsSync } from 'fs';
 import path from 'path';
+import { audit } from 'rxjs';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -320,7 +321,14 @@ export class RecyclingReportService {
     id: string,
     updateRecyclingReportDto: UpdateRecyclingReportDto,
   ): Promise<RecyclingReport> {
-    const { materials, submittedBy } = updateRecyclingReportDto;
+    const {
+      materials,
+      submittedBy,
+      phone,
+      walletAddress,
+      evidenceFile,
+      evidenceUrl,
+    } = updateRecyclingReportDto;
 
     const existingReport = await this.prisma.recyclingReport.findUnique({
       where: { id },
@@ -334,13 +342,56 @@ export class RecyclingReportService {
       await this.userService.checkUserExists(submittedBy);
     }
 
-    return this.prisma.recyclingReport.update({
+    const user = await this.userService.checkUserExists(
+      submittedBy || existingReport.submittedBy,
+    );
+
+    let updatedEvidenceUrl = existingReport.evidenceUrl;
+
+    if (!evidenceUrl && evidenceFile) {
+      const options = {
+        file: evidenceFile,
+        fileName: `${id}.png`,
+        type: 'image/png',
+        bucketName: 'detrash-prod',
+      };
+      updatedEvidenceUrl = await this.uploadService.upload(options);
+    }
+
+    if (evidenceUrl) {
+      updatedEvidenceUrl = evidenceUrl;
+    }
+
+    const formattedMaterials = materials
+      ? await this.formattedMaterialTotals(materials)
+      : existingReport.materials;
+
+    const updatedMetadata = await this.createMetadata({
+      user,
+      report: {
+        materials: materials || [],
+        phone: phone || existingReport.phone || '',
+        walletAddress: walletAddress || existingReport.walletAddress || '',
+        evidenceFile,
+        evidenceUrl: updatedEvidenceUrl,
+        submittedBy: submittedBy || '',
+      },
+      reportId: id,
+    });
+
+    const updatedReport = await this.prisma.recyclingReport.update({
       where: { id },
       data: {
-        ...updateRecyclingReportDto,
-        materials,
+        submittedBy: submittedBy || existingReport.submittedBy,
+        phone: phone || existingReport.phone,
+        walletAddress: walletAddress || existingReport.walletAddress,
+        materials: formattedMaterials || {},
+        evidenceUrl: updatedEvidenceUrl,
+        metadata: updatedMetadata,
       },
     });
+
+    return updatedReport;
   }
 
   async deleteRecyclingReport(id: string): Promise<RecyclingReport> {
