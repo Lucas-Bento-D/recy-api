@@ -37,11 +37,6 @@ export class RecyclingReportService {
     private readonly userService: UserService,
   ) {}
 
-  // TODO: Improvments
-  // await Promise.all([])
-  // cache template image
-  // move calculateMaterialTotals, formatMaterialTotals for diferente function
-
   private async generateReportImage(
     metadata: Metadata,
     reportId: string,
@@ -130,82 +125,12 @@ export class RecyclingReportService {
     }
   }
 
-  async createRecyclingReport(
-    createRecyclingReportDto: CreateRecyclingReportDto,
-  ): Promise<RecyclingReport> {
-    const {
-      submittedBy,
-      reportDate,
-      phone,
-      materials,
-      walletAddress,
-      evidenceFile,
-      evidenceUrl,
-    } = createRecyclingReportDto;
-
-    const user = await this.userService.checkUserExists(submittedBy);
-
-    // Generate a unique report ID using ULID
-    const reportId = ulid();
-
-    // Handle file upload if evidence file is provided
-    let evidenceFileUrl = '';
-    if (!evidenceUrl && evidenceFile) {
-      const options = {
-        file: evidenceFile,
-        fileName: reportId,
-        type: 'image/png',
-      };
-      evidenceFileUrl = await this.uploadService.upload(options);
-    }
-
-    const capitalize = (word: string): string =>
-      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-
-    // Prepare metadata for the report
-    const jsonMetadata: Metadata = {
-      attributes: [
-        {
-          trait_type: 'Originating email',
-          value: user.email,
-        },
-        {
-          trait_type: 'Originating wallet',
-          value: walletAddress,
-        },
-        {
-          trait_type: 'Audit',
-          value: 'Not Verified',
-        },
-        ...materials.map((material) => ({
-          trait_type: capitalize(material.materialType),
-          value: `${material.weightKg} kg`, // Append "kg" to the weight
-        })),
-      ],
-      description: 'Recycling and composting report',
-      name: 'RECY Report',
-    };
-
-    // Generate PNG image buffer representing the report
-    const pngImageBuffer = await this.generateReportImage(
-      jsonMetadata,
-      reportId,
-      user,
-    );
-
-    // Upload the image to S3 and get the URL
-    const imageReportUrlUploaded = await this.uploadService.upload({
-      fileName: reportId,
-      file: pngImageBuffer,
-      type: 'image/png',
-    });
-
-    // Add image URL to metadata
-    const metadataWithImage = {
-      ...jsonMetadata,
-      image: imageReportUrlUploaded,
-    };
-
+  private async formattedMaterialTotals(
+    materials: {
+      materialType: ResidueType;
+      weightKg: number;
+    }[],
+  ) {
     const materialTotals: MaterialTotals = materials.reduce(
       (acc, { materialType, weightKg }) => {
         if (!acc[materialType]) {
@@ -226,6 +151,116 @@ export class RecyclingReportService {
       ); // Ensure value is not undefined
     }
 
+    return formattedMaterialTotals;
+  }
+
+  private async createMetadata({
+    user,
+    report,
+    reportId,
+  }: {
+    user: User;
+    report: CreateRecyclingReportDto;
+    reportId: string;
+  }) {
+    const { walletAddress, email } = user;
+
+    const { materials } = report;
+
+    const capitalize = (word: string): string =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+    const formattedTotals = await this.formattedMaterialTotals(materials);
+
+    // Prepare metadata for the report
+    const jsonMetadata: Metadata = {
+      attributes: [
+        {
+          trait_type: 'Originating email',
+          value: email,
+        },
+        {
+          trait_type: 'Originating wallet',
+          value: walletAddress || '',
+        },
+        {
+          trait_type: 'Audit',
+          value: 'Not Verified',
+        },
+        // Consolidar os materiais
+        ...Object.entries(formattedTotals).map(([key, totalWeight]) => ({
+          trait_type: capitalize(key),
+          value: `${totalWeight} kg`,
+        })),
+      ],
+      description: 'Recycling and composting report',
+      name: 'RECY Report',
+    };
+
+    // Generate PNG image buffer representing the report
+    const pngImageBuffer = await this.generateReportImage(
+      jsonMetadata,
+      reportId,
+      user,
+    );
+
+    // Upload the image to S3 and get the URL
+    const imageReportUrlUploaded = await this.uploadService.upload({
+      fileName: `${reportId}.png`,
+      file: pngImageBuffer,
+      type: 'image/png',
+      bucketName: 'detrash-public',
+      path: 'images',
+    });
+
+    // Add image URL to metadata
+    const metadataWithImage = {
+      ...jsonMetadata,
+      image: imageReportUrlUploaded,
+    };
+
+    return metadataWithImage;
+  }
+
+  async createRecyclingReport(
+    createRecyclingReportDto: CreateRecyclingReportDto,
+  ): Promise<RecyclingReport> {
+    const {
+      submittedBy,
+      reportDate,
+      phone,
+      materials,
+      walletAddress,
+      evidenceFile,
+      evidenceUrl,
+    } = createRecyclingReportDto;
+
+    const user = await this.userService.checkUserExists(submittedBy);
+
+    // Generate a unique report ID using ULID
+    const reportId = ulid();
+
+    // Handle file upload if evidence file is provided
+    let evidenceFileUrl = '';
+
+    if (!evidenceUrl && evidenceFile) {
+      const options = {
+        file: evidenceFile,
+        fileName: `${reportId}.png`,
+        type: 'image/png',
+        bucketName: 'detrash-prod',
+      };
+      evidenceFileUrl = await this.uploadService.upload(options);
+    }
+
+    const metadata = await this.createMetadata({
+      user,
+      report: createRecyclingReportDto,
+      reportId,
+    });
+
+    const materialsFormatted = await this.formattedMaterialTotals(materials);
+
     // Create the recycling report in the database
     // TODO: need to create value with total amount per materials
     const createdReport = await this.prisma.recyclingReport.create({
@@ -235,10 +270,10 @@ export class RecyclingReportService {
         reportDate,
         audited: false,
         phone,
-        materials: formattedMaterialTotals,
+        materials: materialsFormatted,
         walletAddress,
         evidenceUrl: evidenceUrl || evidenceFileUrl,
-        metadata: metadataWithImage,
+        metadata,
       },
     });
 

@@ -5,9 +5,6 @@ import { ulid } from 'ulid';
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UploadService } from '@/shared/modules/upload/upload.service';
 
-// import { MintCeloDto } from '../web3/dtos/celo/mint';
-// import { MintNftDto } from '../web3/dtos/polygon/mint-nft';
-// import { Web3Service } from '../web3/web3.service';
 import { CreateAuditDto } from './dtos/create-audit.dto';
 import { UpdateAuditDto } from './dtos/update-audit.dto';
 
@@ -18,7 +15,7 @@ interface Attribute {
 @Injectable()
 export class AuditService {
   constructor(
-    private readonly prisma: PrismaService, // private readonly web3Service: Web3Service,
+    private readonly prisma: PrismaService,
     private readonly uploadService: UploadService,
   ) {}
 
@@ -78,16 +75,17 @@ export class AuditService {
 
         const options = {
           file: bufferMetadata,
-          fileName: audit.reportId,
+          fileName: `${audit.reportId}.json`,
           type: 'application/json',
+          bucketName: 'detrash-public',
+          path: 'metadata',
         };
 
         await this.uploadService.upload(options);
 
         return audit;
 
-        // upload metadata on aws
-
+        // TODO: integrate with blockchain
         //   // Creating report on polygon after validate true
         //   async mintNFTPolygon(data: MintNftDto) {
         //     return this.web3Service.mintNFTPolygon(data);

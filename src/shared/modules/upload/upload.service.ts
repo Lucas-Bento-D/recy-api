@@ -16,11 +16,23 @@ export class UploadService {
     });
   }
 
-  async upload({ fileName, file, type }: UploadFileDto): Promise<string> {
-    const newFileName = `${Date.now()}-${randomUUID()}${extname(fileName)}`;
+  async upload({
+    fileName,
+    file,
+    type,
+    bucketName,
+    path,
+  }: UploadFileDto): Promise<string> {
+    const folder = path ? `${path}/` : '';
+    const newFileName = `${folder}${Date.now()}-${randomUUID()}${extname(
+      fileName,
+    )}`;
+
+    const resolvedBucketName =
+      bucketName || this.configService.getOrThrow('AWS_S3_BUCKET_NAME');
 
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: resolvedBucketName,
       Key: newFileName,
       Body: file,
       ContentType: type,
@@ -28,9 +40,7 @@ export class UploadService {
 
     await this.s3Client.send(command);
 
-    const fileUrl = `https://${
-      process.env.AWS_S3_BUCKET_NAME
-    }.s3.${this.configService.getOrThrow(
+    const fileUrl = `https://${resolvedBucketName}.s3.${this.configService.getOrThrow(
       'AWS_S3_REGION',
     )}.amazonaws.com/${newFileName}`;
 
