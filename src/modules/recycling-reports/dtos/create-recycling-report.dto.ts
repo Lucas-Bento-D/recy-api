@@ -49,7 +49,7 @@ export const CreateRecyclingReportSchema = z
       .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM wallet address format') // Validate Ethereum wallet address
       .or(z.literal('')) // Allow an empty string
       .optional(),
-    evidenceUrl: z
+    residueEvidence: z
       .string()
       .url('Invalid URL format') // Validate as a URL
       .refine(
@@ -57,14 +57,14 @@ export const CreateRecyclingReportSchema = z
         'Evidence URL must start with https',
       )
       .optional(),
-    evidenceFile: z
+    residueEvidenceFile: z
       .instanceof(Buffer) // Validate file content as a Buffer
       .refine((buffer) => buffer.length > 0, 'File content cannot be empty')
       .optional(),
   })
-  .refine((data) => data.evidenceUrl || data.evidenceFile, {
-    message: 'Either evidenceFile or evidenceUrl must be provided.',
-    path: ['evidenceFile', 'evidenceUrl'], // Reference both paths for error messages
+  .refine((data) => data.residueEvidence || data.residueEvidenceFile, {
+    message: 'Either residueEvidenceFile or residueEvidence must be provided.',
+    path: ['residueEvidenceFile', 'residueEvidence'], // Reference both paths for error messages
   });
 
 // Define the TypeScript type based on the schema
@@ -93,10 +93,10 @@ export class CreateRecyclingReportSwaggerDto {
   walletAddress?: string;
 
   @ApiProperty({ required: false, type: String })
-  evidenceUrl?: string;
+  residueEvidence?: string;
 
   @ApiProperty({ required: false, type: Buffer })
-  evidenceFile?: Buffer;
+  residueEvidenceFile?: Buffer;
 }
 
 // Manually make all fields optional for the update scenario
@@ -133,7 +133,7 @@ export const UpdateRecyclingReportSchema = z
       .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM wallet address format') // Validate Ethereum wallet address
       .or(z.literal('')) // Allow an empty string
       .optional(),
-    evidenceUrl: z
+    residueEvidence: z
       .string()
       .url('Invalid URL format') // Validate as a URL
       .refine(
@@ -141,14 +141,14 @@ export const UpdateRecyclingReportSchema = z
         'Evidence URL must start with https',
       )
       .optional(),
-    evidenceFile: z
+    residueEvidenceFile: z
       .instanceof(Buffer) // Validate file content as a Buffer
       .refine((buffer) => buffer.length > 0, 'File content cannot be empty')
       .optional(),
   })
-  .refine((data) => data.evidenceUrl || data.evidenceFile, {
-    message: 'Either evidenceFile or evidenceUrl must be provided.',
-    path: ['evidenceFile', 'evidenceUrl'], // Reference both paths for error messages
+  .refine((data) => data.residueEvidence || data.residueEvidenceFile, {
+    message: 'Either EvidenceFile or residueEvidence must be provided.',
+    path: ['residueEvidence', 'residueEvidenceFile'], // Reference both paths for error messages
   });
 
 // Define the TypeScript type based on the schema
@@ -177,8 +177,8 @@ export class UpdateRecyclingReportSwaggerDto {
   walletAddress?: string;
 
   @ApiProperty({ required: false, type: String })
-  evidenceUrl?: string;
+  residueEvidence?: string;
 
   @ApiProperty({ required: false, type: Buffer })
-  evidenceFile?: Buffer;
+  residueEvidenceFile?: Buffer;
 }

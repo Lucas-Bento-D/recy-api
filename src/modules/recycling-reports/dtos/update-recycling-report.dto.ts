@@ -67,7 +67,7 @@ export const UpdateRecyclingReportSchema = z
       .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM wallet address format')
       .or(z.literal(''))
       .optional(),
-    evidenceUrl: z
+    residueEvidence: z
       .string()
       .url('Invalid URL format')
       .refine(
@@ -75,14 +75,14 @@ export const UpdateRecyclingReportSchema = z
         'Evidence URL must start with https',
       )
       .optional(),
-    evidenceFile: z
+    residueEvidenceFile: z
       .instanceof(Buffer)
       .refine((buffer) => buffer.length > 0, 'File content cannot be empty') // assuming the file will be uploaded as a Buffer
       .optional(),
   })
-  .refine((data) => data.evidenceUrl || data.evidenceFile, {
-    message: 'Either evidenceFile or evidenceUrl must be provided.',
-    path: ['evidenceFile', 'evidenceUrl'],
+  .refine((data) => data.residueEvidence || data.residueEvidenceFile, {
+    message: 'Either residueEvidenceFile or evidenceUrl must be provided.',
+    path: ['residueEvidenceFile', 'residueEvidence'],
   });
 
 export type UpdateRecyclingReportDto = z.infer<
@@ -95,6 +95,6 @@ export class CreateRecyclingReportSwaggerDto {
   phone?: string;
   materials: { materialType: ResidueType; weightKg: number }[];
   walletAddress?: string;
-  evidenceUrl?: string;
-  evidenceFile?: Buffer;
+  residueEvidence?: string;
+  residueEvidenceFile?: Buffer;
 }

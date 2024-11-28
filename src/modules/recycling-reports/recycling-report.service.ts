@@ -1,7 +1,5 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { RecyclingReport } from '@prisma/client';
-import { Queue } from 'bullmq';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
@@ -32,24 +30,24 @@ export class RecyclingReportService {
       phone,
       materials,
       walletAddress,
-      evidenceFile,
-      evidenceUrl,
+      residueEvidenceFile,
+      residueEvidence,
     } = createRecyclingReportDto;
 
     // Generate a unique report ID using ULID
     const reportId = ulid();
 
     // Handle file upload if evidence file is provided
-    let evidenceFileUrl = '';
+    let residueEvidenceFileUrl = '';
 
-    if (!evidenceUrl && evidenceFile) {
+    if (!residueEvidence && residueEvidenceFile) {
       const options = {
-        file: evidenceFile,
+        file: residueEvidenceFile,
         fileName: `${reportId}.png`,
         type: 'image/png',
         bucketName: 'detrash-prod',
       };
-      evidenceFileUrl = await this.uploadService.upload(options);
+      residueEvidenceFileUrl = await this.uploadService.upload(options);
     }
 
     // Create the recycling report in the database
@@ -63,7 +61,7 @@ export class RecyclingReportService {
         phone,
         materials,
         walletAddress,
-        evidenceUrl: evidenceUrl || evidenceFileUrl,
+        residueEvidence: residueEvidence || residueEvidenceFileUrl,
         metadata: {},
       },
     });

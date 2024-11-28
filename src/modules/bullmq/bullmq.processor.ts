@@ -9,12 +9,16 @@ import path from 'path';
 import { UploadService } from '@/shared/modules/upload/upload.service';
 import { formattedMaterialTotals } from '@/shared/utils/recycling-report';
 
+import { PrismaService } from '../prisma/prisma.service';
 import { Metadata } from '../recycling-reports/types';
-import { JOBS, QUEUE_NAME } from './bullmq.constants';
+import { JOBS, REPORT_QUEUE } from './bullmq.constants';
 
-@Processor(QUEUE_NAME)
+@Processor(REPORT_QUEUE)
 export class BullMQProcessor extends WorkerHost {
-  constructor(private readonly uploadService: UploadService) {
+  constructor(
+    private readonly uploadService: UploadService,
+    private readonly prisma: PrismaService,
+  ) {
     super();
   }
 
@@ -117,10 +121,9 @@ export class BullMQProcessor extends WorkerHost {
   }
 
   async reportEvidence(job: Job<any>): Promise<any> {
-    const { user, report, reportId } = job.data;
+    const { user, report } = job.data;
 
     const { walletAddress, email } = user;
-
     const { materials } = report;
 
     const capitalize = (word: string): string =>
@@ -155,37 +158,47 @@ export class BullMQProcessor extends WorkerHost {
     // Generate PNG image buffer representing the report
     const pngImageBuffer = await this.generateReportImage(
       jsonMetadata,
-      reportId,
+      report.id,
       user,
     );
 
-    // Upload the image to S3 and get the URL
-    const imageReportUrlUploaded = await this.uploadService.upload({
-      fileName: `${reportId}.png`,
-      file: pngImageBuffer,
-      type: 'image/png',
-      bucketName: 'detrash-public',
-      path: 'images',
+    // Prepare upload tasks
+    const uploadTasks = [
+      this.uploadService.upload({
+        fileName: `${report.id}.png`,
+        file: pngImageBuffer,
+        type: 'image/png',
+        bucketName: 'detrash-public',
+        path: 'images',
+      }),
+      this.uploadService.upload({
+        fileName: `${report.id}.json`,
+        file: Buffer.from(JSON.stringify({ ...jsonMetadata, image: '' })), // Placeholder for image URL
+        type: 'application/json',
+        bucketName: 'detrash-public',
+        path: 'metadata',
+      }),
+    ];
+
+    // Execute uploads in parallel
+    const [reportEvidenceUrlUploaded] = await Promise.all(uploadTasks);
+
+    // Update the metadata with the actual image URL
+    const metadataWithReportEvidence = {
+      ...jsonMetadata,
+      reportEvidence: reportEvidenceUrlUploaded,
+    };
+
+    const reportUpdated = await this.prisma.recyclingReport.update({
+      where: {
+        id: report.id,
+      },
+      data: {
+        ...report,
+        metadata: metadataWithReportEvidence,
+      },
     });
 
-    // Add image URL to metadata
-    const metadataWithImage = {
-      ...jsonMetadata,
-      image: imageReportUrlUploaded,
-    };
-
-    const bufferMetadata = Buffer.from(JSON.stringify(metadataWithImage));
-
-    const options = {
-      file: bufferMetadata,
-      fileName: `${reportId}.json`,
-      type: 'application/json',
-      bucketName: 'detrash-public',
-      path: 'metadata',
-    };
-
-    await this.uploadService.upload(options);
-
-    return metadataWithImage;
+    return reportUpdated;
   }
 }

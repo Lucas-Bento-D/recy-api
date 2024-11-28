@@ -5,11 +5,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AuditModule } from './modules/audits/audit.module';
-import { QUEUE_NAME } from './modules/bullmq/bullmq.constants';
+import { REPORT_QUEUE } from './modules/bullmq/bullmq.constants';
 import { BullMQEventsListener } from './modules/bullmq/bullmq.eventsListener';
 import { BullMQProcessor } from './modules/bullmq/bullmq.processor';
 import { FootprintModule } from './modules/footprint';
 import { HealthModule } from './modules/health/health.module';
+import { PrismaService } from './modules/prisma/prisma.service';
 import { RecyclingReportModule } from './modules/recycling-reports';
 import { UserModule } from './modules/users/user.module';
 import { Web3Module } from './modules/web3/web3.module';
@@ -21,27 +22,6 @@ import { UploadModule } from './shared/modules/upload/upload.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-    }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST'),
-          port: config.get<number>('REDIS_PORT'),
-        },
-      }),
-    }),
-    BullMQModule.registerQueueAsync({
-      name: QUEUE_NAME,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST'),
-          port: config.get<number>('REDIS_PORT'),
-        },
-      }),
     }),
     Web3Module,
     UploadModule,
@@ -64,6 +44,27 @@ import { UploadModule } from './shared/modules/upload/upload.module';
         limit: 100,
       },
     ]),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
+        },
+      }),
+    }),
+    BullMQModule.registerQueueAsync({
+      name: REPORT_QUEUE,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
+        },
+      }),
+    }),
   ],
   controllers: [],
   providers: [
@@ -71,6 +72,7 @@ import { UploadModule } from './shared/modules/upload/upload.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    PrismaService,
     BullMQEventsListener,
     BullMQProcessor,
   ],

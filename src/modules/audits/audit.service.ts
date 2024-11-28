@@ -5,24 +5,18 @@ import { Queue } from 'bullmq';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
-import { UploadService } from '@/shared/modules/upload/upload.service';
 
-import { JOBS, QUEUE_NAME } from '../bullmq/bullmq.constants';
+import { JOBS, REPORT_QUEUE } from '../bullmq/bullmq.constants';
 import { UserService } from '../users/user.service';
 import { CreateAuditDto } from './dtos/create-audit.dto';
 import { UpdateAuditDto } from './dtos/update-audit.dto';
 
-interface Attribute {
-  trait_type: string;
-  value: string;
-}
 @Injectable()
 export class AuditService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly uploadService: UploadService,
     private readonly userService: UserService,
-    @InjectQueue(QUEUE_NAME) readonly bullMQQueue: Queue,
+    @InjectQueue(REPORT_QUEUE) readonly bullMQQueue: Queue,
   ) {}
 
   private async processAfterAuditValidated(auditId: string) {
@@ -53,14 +47,11 @@ export class AuditService {
         );
 
         const JOB_DATA = {
-          reportId: recyclingReport.id,
           user: user,
           report: recyclingReport,
         };
 
         this.bullMQQueue.add(JOBS.reportEvidence, JOB_DATA);
-
-        return audit;
 
         // TODO: integrate with blockchain
         //   // Creating report on polygon after validate true
@@ -76,6 +67,8 @@ export class AuditService {
         //   // 3) Mint de 40% do volume para a carteira de incentivos e liquidez 0xBdF566d020e206456534e873f5EF385A762aC4FC
         //   // 4) Transfer da carteira de incentivos e liquidez de 0.5 cRECYs por relatório para cada gerador de resíduos
         //   // 5) que mandou relatórios (e conectaram a carteira) na data entre esse mint de cRECY e o último mint de cRECY.
+
+        return audit;
       }
     } catch (error) {
       throw new Error(`Error processing after audit validation: ${error}`);

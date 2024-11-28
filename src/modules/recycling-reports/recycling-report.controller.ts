@@ -50,16 +50,16 @@ export class RecyclingReportController {
     status: 400,
     description: 'Bad request. Validation errors or other issues.',
   })
-  @UseInterceptors(FileInterceptor('evidenceFile'))
+  @UseInterceptors(FileInterceptor('residueEvidenceFile'))
   @ApiConsumes('application/json', 'multipart/form-data')
   @ApiBody({ type: CreateRecyclingReportSwaggerDto })
   async createRecyclingReport(
     @Body() createRecyclingReportDto: CreateRecyclingReportDto,
-    @UploadedFile() evidenceFile: Express.Multer.File,
+    @UploadedFile() residueEvidenceFile: Express.Multer.File,
   ): Promise<RecyclingReport> {
     const mergedData = {
       ...createRecyclingReportDto,
-      evidenceFile: evidenceFile?.buffer,
+      residueEvidenceFile: residueEvidenceFile?.buffer,
     };
 
     const parsedData: CreateRecyclingReportDto =

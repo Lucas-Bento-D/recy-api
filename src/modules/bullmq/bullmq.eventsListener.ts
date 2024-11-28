@@ -4,9 +4,9 @@ import {
   QueueEventsListener,
 } from '@nestjs/bullmq';
 
-import { QUEUE_NAME } from './bullmq.constants';
+import { REPORT_QUEUE } from './bullmq.constants';
 
-@QueueEventsListener(QUEUE_NAME)
+@QueueEventsListener(REPORT_QUEUE)
 export class BullMQEventsListener extends QueueEventsHost {
   @OnQueueEvent('active')
   onActive(
@@ -17,7 +17,7 @@ export class BullMQEventsListener extends QueueEventsHost {
     id: string,
   ) {
     console.log(
-      `Active event on ${QUEUE_NAME} with id: ${id} and args: ${JSON.stringify(
+      `Active event on ${REPORT_QUEUE} with id: ${id} and args: ${JSON.stringify(
         args,
       )}`,
     );
@@ -33,7 +33,7 @@ export class BullMQEventsListener extends QueueEventsHost {
     id: string,
   ) {
     console.log(
-      `Completed event on ${QUEUE_NAME} with id: ${id} and args: ${JSON.stringify(
+      `Completed event on ${REPORT_QUEUE} with id: ${id} and args: ${JSON.stringify(
         args,
       )}`,
     );
@@ -49,7 +49,7 @@ export class BullMQEventsListener extends QueueEventsHost {
     id: string,
   ) {
     console.log(
-      `Failed event on ${QUEUE_NAME} with id: ${id} and args: ${JSON.stringify(
+      `Failed event on ${REPORT_QUEUE} with id: ${id} and args: ${JSON.stringify(
         args,
       )}`,
     );
