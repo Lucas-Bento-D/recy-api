@@ -53,6 +53,7 @@ import { UploadModule } from './shared/modules/upload/upload.module';
           host: config.get<string>('REDIS_HOST'),
           port: config.get<number>('REDIS_PORT'),
         },
+        tls: true,
       }),
     }),
     BullMQModule.registerQueueAsync({
