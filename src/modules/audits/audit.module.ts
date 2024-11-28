@@ -1,3 +1,5 @@
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { BullBoardModule } from '@bull-board/nestjs';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
@@ -16,6 +18,10 @@ import { AuditService } from './audit.service';
     Web3Module,
     BullModule.registerQueue({
       name: REPORT_QUEUE,
+    }),
+    BullBoardModule.forFeature({
+      name: REPORT_QUEUE,
+      adapter: BullMQAdapter,
     }),
   ],
   providers: [AuditService, PrismaService, UserService],
