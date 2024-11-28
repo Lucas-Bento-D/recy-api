@@ -1,10 +1,14 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Audit } from '@prisma/client';
+import { Queue } from 'bullmq';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UploadService } from '@/shared/modules/upload/upload.service';
 
+import { JOBS, QUEUE_NAME } from '../bullmq/bullmq.constants';
+import { UserService } from '../users/user.service';
 import { CreateAuditDto } from './dtos/create-audit.dto';
 import { UpdateAuditDto } from './dtos/update-audit.dto';
 
@@ -17,6 +21,8 @@ export class AuditService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadService: UploadService,
+    private readonly userService: UserService,
+    @InjectQueue(QUEUE_NAME) readonly bullMQQueue: Queue,
   ) {}
 
   private async processAfterAuditValidated(auditId: string) {
@@ -42,46 +48,17 @@ export class AuditService {
       }
 
       if (recyclingReport) {
-        const metadata = recyclingReport.metadata as Record<string, any> | null;
+        const user = await this.userService.checkUserExists(
+          recyclingReport.submittedBy,
+        );
 
-        // Filter out the 'Not Verified' attribute
-        const updatedMetadata = {
-          ...metadata, // Spread the existing metadata
-          attributes: (metadata?.attributes || []).filter(
-            (
-              attribute: Attribute, // Explicitly define the type for 'attribute'
-            ) =>
-              !(
-                attribute.trait_type === 'Audit' &&
-                attribute.value === 'Not Verified'
-              ),
-          ),
-          Audit: {
-            trait_type: 'Audit',
-            value: 'Verified', // New value to mark the report as audited
-          },
+        const JOB_DATA = {
+          reportId: recyclingReport.id,
+          user: user,
+          report: recyclingReport,
         };
 
-        // Now update the recycling report with the new metadata
-        await this.prisma.recyclingReport.update({
-          where: { id: audit.reportId },
-          data: {
-            metadata: updatedMetadata, // Updated metadata
-          },
-        });
-
-        // Convert updatedMetadata to a JSON string and then to a Buffer
-        const bufferMetadata = Buffer.from(JSON.stringify(updatedMetadata));
-
-        const options = {
-          file: bufferMetadata,
-          fileName: `${audit.reportId}.json`,
-          type: 'application/json',
-          bucketName: 'detrash-public',
-          path: 'metadata',
-        };
-
-        await this.uploadService.upload(options);
+        this.bullMQQueue.add(JOBS.reportEvidence, JOB_DATA);
 
         return audit;
 

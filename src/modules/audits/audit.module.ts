@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { providers } from 'web3';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 import { UploadService } from '@/shared/modules/upload/upload.service';
