@@ -22,5 +22,6 @@ import { UploadService } from './upload.service';
       useClass: ThrottlerGuard,
     },
   ],
+  exports: [UploadService],
 })
 export class UploadModule {}

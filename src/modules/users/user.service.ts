@@ -16,6 +16,18 @@ import { UpdateUserDto } from './dtos/update-user.dto';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async checkUserExists(userId: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found.`);
+    }
+
+    return user;
+  }
+
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     const { email, name, phone, walletAddress, roleIds } = createUserDto;
 
@@ -83,13 +95,7 @@ export class UserService {
   }
 
   async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new NotFoundException(`User with ID ${id} not found.`);
-    }
+    this.checkUserExists(id);
 
     const { roleIds, ...updateData } = updateUserDto;
 
@@ -144,35 +150,12 @@ export class UserService {
   }
 
   async deleteUser(id: string): Promise<User> {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new NotFoundException(`User with ID ${id} not found.`);
-    }
+    this.checkUserExists(id);
 
     return this.prisma.user.delete({
       where: { id },
       include: { userRoles: { include: { role: true } } },
     });
-  }
-
-  async findUserByEmail(email: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      include: {
-        userRoles: { include: { role: true } },
-        audits: true,
-        recyclingReports: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with email ${email} not found.`);
-    }
-
-    return user;
   }
 
   async findUserById(id: string): Promise<User> {

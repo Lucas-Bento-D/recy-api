@@ -4,8 +4,15 @@ FROM node:20-alpine3.19 AS builder
 # Set the working directory
 WORKDIR /app
 
-# Install curl
-RUN apk --update --no-cache add curl
+# Install curl, Python, pkg-config, and build dependencies
+RUN apk add --no-cache \
+	pkgconfig \
+	gcc \
+	pixman-dev \
+	cairo-dev \
+	pango-dev \
+	make \
+	build-base
 
 # Copy package.json and package-lock.json before other files
 # Leverage Docker cache to save time on dependency installation

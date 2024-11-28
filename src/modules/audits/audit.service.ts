@@ -1,23 +1,13 @@
-import {
-  BadRequestException,
-  GatewayTimeoutException,
-  HttpException,
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
-import { Audit, Prisma } from '@prisma/client';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Audit } from '@prisma/client';
+import { Queue } from 'bullmq';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
-import { MintCeloDto } from '../web3/dtos/celo/mint';
-import { MintNftDto } from '../web3/dtos/polygon/mint-nft';
-import { Web3Service } from '../web3/web3.service';
+import { JOBS, REPORT_QUEUE } from '../bullmq/bullmq.constants';
+import { UserService } from '../users/user.service';
 import { CreateAuditDto } from './dtos/create-audit.dto';
 import { UpdateAuditDto } from './dtos/update-audit.dto';
 
@@ -25,26 +15,75 @@ import { UpdateAuditDto } from './dtos/update-audit.dto';
 export class AuditService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly web3Service: Web3Service,
-    @Inject(WINSTON_MODULE_NEST_PROVIDER)
-    private readonly logger: Logger,
+    private readonly userService: UserService,
+    @InjectQueue(REPORT_QUEUE) readonly bullMQQueue: Queue,
   ) {}
+
+  private async processAfterAuditValidated(auditId: string) {
+    try {
+      const audit = await this.prisma.audit.findUnique({
+        where: { id: auditId },
+      });
+
+      if (!audit || !audit.audited) {
+        throw new NotFoundException(
+          `Audit with ID ${auditId} not found or not audited.`,
+        );
+      }
+
+      const recyclingReport = await this.prisma.recyclingReport.findUnique({
+        where: { id: audit.reportId },
+      });
+
+      if (!recyclingReport) {
+        throw new NotFoundException(
+          `Recycling report with ID ${audit.reportId} not found.`,
+        );
+      }
+
+      if (recyclingReport) {
+        const user = await this.userService.checkUserExists(
+          recyclingReport.submittedBy,
+        );
+
+        const JOB_DATA = {
+          user: user,
+          report: recyclingReport,
+        };
+
+        this.bullMQQueue.add(JOBS.reportEvidence, JOB_DATA);
+
+        // TODO: integrate with blockchain
+        //   // Creating report on polygon after validate true
+        //   async mintNFTPolygon(data: MintNftDto) {
+        //     return this.web3Service.mintNFTPolygon(data);
+        //   }
+        //   // if user is recycler
+        //   async mintCelo(data: MintCeloDto) {
+        //     return this.web3Service.mintCelo(data);
+        //   }
+        //   // 1) Mint de 50% do volume em cRECY para a carteira que mandou o relatório tokenizado (o agente de tratamento sustentável de resíduos).
+        //   // 2) Mint de 10% do volume em cRECY para a carteira dona do contrato.
+        //   // 3) Mint de 40% do volume para a carteira de incentivos e liquidez 0xBdF566d020e206456534e873f5EF385A762aC4FC
+        //   // 4) Transfer da carteira de incentivos e liquidez de 0.5 cRECYs por relatório para cada gerador de resíduos
+        //   // 5) que mandou relatórios (e conectaram a carteira) na data entre esse mint de cRECY e o último mint de cRECY.
+
+        return audit;
+      }
+    } catch (error) {
+      throw new Error(`Error processing after audit validation: ${error}`);
+    }
+  }
 
   async createAudit(createAuditDto: CreateAuditDto): Promise<Audit> {
     const { reportId, audited, auditorId, comments } = createAuditDto;
 
     try {
-      this.logger.log('Starting audit creation');
-
       const recyclingReport = await this.prisma.recyclingReport.findUnique({
         where: { id: reportId },
       });
 
       if (!recyclingReport) {
-        this.logger.warn(
-          `RecyclingReport with ID ${reportId} not found.`,
-          'CreateAudit',
-        );
         throw new NotFoundException(
           `RecyclingReport with ID ${reportId} not found.`,
         );
@@ -70,99 +109,27 @@ export class AuditService {
         },
       });
 
-      this.logger.log(`Audit created with ID: ${audit.id}`);
       return audit;
-    } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(
-        'Error occurred during audit creation',
-        err.stack || JSON.stringify(error),
-        'CreateAudit',
-      );
-
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2003') {
-          this.logger.warn(
-            `Foreign key constraint failed: ${error.meta?.field_name}`,
-            'CreateAudit',
-          );
-          throw new BadRequestException(
-            `Foreign key constraint failed on the field: ${error.meta?.field_name}`,
-          );
-        }
-
-        if (error.code === 'P2002') {
-          this.logger.warn(
-            `Unique constraint failed: ${error.meta?.target}`,
-            'CreateAudit',
-          );
-          throw new BadRequestException(
-            `Unique constraint failed on the field: ${error.meta?.target}`,
-          );
-        }
-      }
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      this.logger.error(
-        'Unexpected error occurred',
-        err.stack || JSON.stringify(error),
-      );
-      throw new InternalServerErrorException('An unexpected error occurred.');
+    } catch (error) {
+      throw error;
     }
   }
 
   async findAllAudits(): Promise<Audit[]> {
-    this.logger.log('Executing findAllAudits', 'AuditService - findAllAudits');
-
     try {
-      const audits = await this.prisma.audit.findMany();
-
-      this.logger.log(
-        `Retrieved ${audits.length} audits successfully`,
-        'AuditService - findAllAudits',
-      );
-
-      return audits;
+      return await this.prisma.audit.findMany();
     } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  private handleError(error: unknown): never {
-    this.logger.error(
-      'An error occurred while retrieving audits',
-      error instanceof Error ? error.stack : JSON.stringify(error),
-      'AuditService - findAllAudits',
-    );
-
-    if (error instanceof Prisma.PrismaClientInitializationError) {
-      throw new ServiceUnavailableException(
-        'Database connection error. Please try again later.',
-      );
-    } else if (error instanceof Prisma.PrismaClientRustPanicError) {
-      throw new GatewayTimeoutException(
-        'Database engine encountered an unexpected error. Please try again later.',
-      );
-    } else {
-      throw new InternalServerErrorException(
-        'An unexpected error occurred while retrieving audits. Please try again later.',
-      );
+      throw error;
     }
   }
 
   async findAuditById(id: string): Promise<Audit> {
-    this.logger.log(`Retrieving audit with ID: ${id}`, 'FindAuditById');
     const audit = await this.prisma.audit.findUnique({ where: { id } });
 
     if (!audit) {
-      this.logger.warn(`Audit with ID ${id} not found`, 'FindAuditById');
       throw new NotFoundException(`Audit with ID ${id} not found.`);
     }
 
-    this.logger.log(`Retrieved audit with ID: ${id}`, 'FindAuditById');
     return audit;
   }
 
@@ -170,7 +137,12 @@ export class AuditService {
     id: string,
     updateAuditDto: UpdateAuditDto,
   ): Promise<Audit> {
-    this.logger.log(`Updating audit with ID: ${id}`, 'UpdateAudit');
+    if (!updateAuditDto.auditorId) {
+      throw new NotFoundException(
+        'Auditor ID is required to updated an Audit.',
+      );
+    }
+
     const existingAudit = await this.prisma.audit.findUnique({ where: { id } });
 
     if (!existingAudit) {
@@ -182,16 +154,17 @@ export class AuditService {
       data: updateAuditDto,
     });
 
-    this.logger.log(`Audit with ID ${id} successfully updated`, 'UpdateAudit');
+    if (updatedAudit.audited && !existingAudit.audited) {
+      await this.processAfterAuditValidated(updatedAudit.id);
+    }
+
     return updatedAudit;
   }
 
   async deleteAudit(id: string): Promise<Audit> {
-    this.logger.log(`Deleting audit with ID: ${id}`, 'DeleteAudit');
     const audit = await this.prisma.audit.findUnique({ where: { id } });
 
     if (!audit) {
-      this.logger.warn(`Audit with ID ${id} not found`, 'DeleteAudit');
       throw new NotFoundException(`Audit with ID ${id} not found.`);
     }
 
@@ -199,90 +172,6 @@ export class AuditService {
       where: { id },
     });
 
-    this.logger.log(`Audit with ID ${id} successfully deleted`, 'DeleteAudit');
     return deletedAudit;
   }
-
-  // 1) Creating report
-  // {
-  //   "submittedBy": "01JAER87DV9WHJFQ2T7A47H5B5",
-  //   "reportDate": "2024-10-17T12:00:00Z",
-  //   "phone": "+551199234-5678",
-  //   "materials": [
-  //     { "materialType": "PLASTIC", "weightKg": 12.5 },
-  //     { "materialType": "METAL", "weightKg": 7.3 }
-  //   ],
-  //   "walletAddress": "0xdA7aEe1A6f2337Bd908B4669702604f5327C1A61",
-  //   "evidenceUrl": "https://example.com/evidence.jpg"
-  // }
-
-  // Here I need to save the volume of materials
-
-  // --------------------------------------------------------------------------------
-
-  // 2) Audit validated report
-  // {
-  //   "reportId": "01JAES25E1FENC4XZ5XX6PCAHG",
-  //   "audited": true,
-  //   "auditorId": "01JAER87DV9WHJFQ2T7A47H5B5",
-  //   "comments": "Audit completed successfully."
-  // }
-
-  // Creating metadata
-
-  // {
-  //   "attributes": [
-  //     {
-  //       "trait_type": "Originating email",
-  //       "value": "ffs.china@gmail.com"
-  //     },
-  //     {
-  //       "trait_type": "Originating wallet",
-  //       "value": "0xF70d06D4d3a78E80Be405267d229224697d25c68"
-  //     },
-  //     {
-  //       "trait_type": "Audit",
-  //       "value": "Verified"
-  //     },
-  //     {
-  //       "trait_type": "Metal kgs",
-  //       "value": "35"
-  //     },
-  //     {
-  //       "trait_type": "Paper kgs",
-  //       "value": "115"
-  //     },
-  //     {
-  //       "trait_type": "Plastic kgs",
-  //       "value": "75"
-  //     }
-  //   ],
-  //   "description": "Recycling and composting report",
-  //   "image": "https://detrash-public.s3.us-east-1.amazonaws.com/images/eaf8f37f-2055-40c1-8e0e-400c8453b6e9.png",
-  //   "name": "RECY Report"
-  // }
-
-  // --------------------------------------------------------------------------------
-
-  // Creating report on polygon after validate true
-
-  async mintNFTPolygon(data: MintNftDto) {
-    return this.web3Service.mintNFTPolygon(data);
-  }
-
-  // if user is recycler
-
-  async mintCelo(data: MintCeloDto) {
-    return this.web3Service.mintCelo(data);
-  }
-
-  // 1) Mint de 50% do volume em cRECY para a carteira que mandou o relatório tokenizado (o agente de tratamento sustentável de resíduos).
-
-  // 2) Mint de 10% do volume em cRECY para a carteira dona do contrato.
-
-  // 3) Mint de 40% do volume para a carteira de incentivos e liquidez 0xBdF566d020e206456534e873f5EF385A762aC4FC
-
-  // 4) Transfer da carteira de incentivos e liquidez de 0.5 cRECYs por relatório para cada gerador de resíduos
-
-  // 5) que mandou relatórios (e conectaram a carteira) na data entre esse mint de cRECY e o último mint de cRECY.
 }

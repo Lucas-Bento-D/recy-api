@@ -6,18 +6,29 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RecyclingReport } from '@prisma/client';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
+import { PermissionsGuard } from '../authorization/permission.guard';
 import {
   CreateRecyclingReportDto,
   CreateRecyclingReportSchema,
   CreateRecyclingReportSwaggerDto,
 } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
+import { RecyclingReportPermissions } from './recycling-report.permissions';
 import { RecyclingReportService } from './recycling-report.service';
 
 @ApiTags('recycling-reports')
@@ -27,6 +38,7 @@ export class RecyclingReportController {
     private readonly recyclingReportService: RecyclingReportService,
   ) {}
 
+  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new recycling report' })
@@ -38,16 +50,25 @@ export class RecyclingReportController {
     status: 400,
     description: 'Bad request. Validation errors or other issues.',
   })
+  @UseInterceptors(FileInterceptor('residueEvidenceFile'))
+  @ApiConsumes('application/json', 'multipart/form-data')
   @ApiBody({ type: CreateRecyclingReportSwaggerDto })
   async createRecyclingReport(
     @Body() createRecyclingReportDto: CreateRecyclingReportDto,
+    @UploadedFile() residueEvidenceFile: Express.Multer.File,
   ): Promise<RecyclingReport> {
+    const mergedData = {
+      ...createRecyclingReportDto,
+      residueEvidenceFile: residueEvidenceFile?.buffer,
+    };
+
     const parsedData: CreateRecyclingReportDto =
-      CreateRecyclingReportSchema.parse(createRecyclingReportDto);
+      CreateRecyclingReportSchema.parse(mergedData);
 
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }
 
+  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
@@ -59,6 +80,7 @@ export class RecyclingReportController {
     return this.recyclingReportService.findAllRecyclingReports();
   }
 
+  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Retrieve a recycling report by ID' })
@@ -76,6 +98,7 @@ export class RecyclingReportController {
     return this.recyclingReportService.findRecyclingReportById(id);
   }
 
+  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
   @Put(':id')
   @ApiOperation({ summary: 'Update a recycling report by ID' })
@@ -101,6 +124,7 @@ export class RecyclingReportController {
     );
   }
 
+  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a recycling report by ID' })

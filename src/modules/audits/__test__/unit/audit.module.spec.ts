@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-import { LoggerModule } from '@/modules/logger/logger.module';
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { LoggerModule } from '@/shared/modules/logger/logger.module';
 
 import { Web3Module } from '../../../web3/web3.module';
 import { Web3Service } from '../../../web3/web3.service';

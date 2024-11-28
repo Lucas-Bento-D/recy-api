@@ -1,27 +1,25 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, RecyclingReport, User } from '@prisma/client';
+import { RecyclingReport } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
 
+import { UploadService } from '../../shared/modules/upload/upload.service';
+import { AuditService } from '../audits/audit.service';
+import { UserService } from '../users/user.service';
 import { CreateRecyclingReportDto } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
 
 @Injectable()
 export class RecyclingReportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+    private readonly uploadService: UploadService,
+    private readonly userService: UserService,
+  ) {}
 
-  private async checkUserExists(userId: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found.`);
-    }
-
-    return user;
-  }
+  //TODO: recyclingEvidence x reportEvidence
 
   async createRecyclingReport(
     createRecyclingReportDto: CreateRecyclingReportDto,
@@ -32,29 +30,51 @@ export class RecyclingReportService {
       phone,
       materials,
       walletAddress,
-      evidenceUrl,
+      residueEvidenceFile,
+      residueEvidence,
     } = createRecyclingReportDto;
 
-    await this.checkUserExists(submittedBy);
-
-    const jsonMaterials: Prisma.JsonArray =
-      materials as unknown as Prisma.JsonArray;
-
-    // Gera um ULID para o ID do relatório de reciclagem
+    // Generate a unique report ID using ULID
     const reportId = ulid();
 
-    return this.prisma.recyclingReport.create({
+    // Handle file upload if evidence file is provided
+    let residueEvidenceFileUrl = '';
+
+    if (!residueEvidence && residueEvidenceFile) {
+      const options = {
+        file: residueEvidenceFile,
+        fileName: `${reportId}.png`,
+        type: 'image/png',
+        bucketName: 'detrash-prod',
+      };
+      residueEvidenceFileUrl = await this.uploadService.upload(options);
+    }
+
+    // Create the recycling report in the database
+    // TODO: need to create value with total amount per materials
+    const createdReport = await this.prisma.recyclingReport.create({
       data: {
         id: reportId,
-        submittedBy: submittedBy,
+        submittedBy,
         reportDate,
         audited: false,
         phone,
-        materials: jsonMaterials,
+        materials,
         walletAddress,
-        evidenceUrl,
+        residueEvidence: residueEvidence || residueEvidenceFileUrl,
+        metadata: {},
       },
     });
+
+    // Log the creation of the audit entry for tracking
+    await this.auditService.createAudit({
+      reportId,
+      audited: false,
+      auditorId: null,
+      comments: '',
+    });
+
+    return createdReport;
   }
 
   async findAllRecyclingReports(): Promise<RecyclingReport[]> {
@@ -77,7 +97,7 @@ export class RecyclingReportService {
   }
 
   async findRecyclingReportsByUser(userId: string): Promise<RecyclingReport[]> {
-    await this.checkUserExists(userId);
+    await this.userService.checkUserExists(userId);
 
     return this.prisma.recyclingReport.findMany({
       where: { submittedBy: userId },
@@ -89,8 +109,6 @@ export class RecyclingReportService {
     id: string,
     updateRecyclingReportDto: UpdateRecyclingReportDto,
   ): Promise<RecyclingReport> {
-    const { materials, submittedBy } = updateRecyclingReportDto;
-
     const existingReport = await this.prisma.recyclingReport.findUnique({
       where: { id },
     });
@@ -99,20 +117,12 @@ export class RecyclingReportService {
       throw new NotFoundException(`RecyclingReport with ID ${id} not found.`);
     }
 
-    if (submittedBy) {
-      await this.checkUserExists(submittedBy);
-    }
-
-    const jsonMaterials: Prisma.JsonArray =
-      materials as unknown as Prisma.JsonArray;
-
-    return this.prisma.recyclingReport.update({
+    const updatedReport = await this.prisma.recyclingReport.update({
       where: { id },
-      data: {
-        ...updateRecyclingReportDto,
-        materials: jsonMaterials,
-      },
+      data: updateRecyclingReportDto,
     });
+
+    return updatedReport;
   }
 
   async deleteRecyclingReport(id: string): Promise<RecyclingReport> {
