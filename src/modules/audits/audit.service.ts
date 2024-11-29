@@ -15,8 +15,7 @@ import { UpdateAuditDto } from './dtos/update-audit.dto';
 export class AuditService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly userService: UserService,
-    @InjectQueue(REPORT_QUEUE) readonly bullMQQueue: Queue,
+    private readonly userService: UserService, // @InjectQueue(REPORT_QUEUE) readonly bullMQQueue: Queue,
   ) {}
 
   private async processAfterAuditValidated(auditId: string) {
@@ -46,12 +45,12 @@ export class AuditService {
           recyclingReport.submittedBy,
         );
 
-        const JOB_DATA = {
-          user: user,
-          report: recyclingReport,
-        };
+        // const JOB_DATA = {
+        //   user: user,
+        //   report: recyclingReport,
+        // };
 
-        this.bullMQQueue.add(JOBS.reportEvidence, JOB_DATA);
+        // this.bullMQQueue.add(JOBS.reportEvidence, JOB_DATA);
 
         // TODO: integrate with blockchain
         //   // Creating report on polygon after validate true

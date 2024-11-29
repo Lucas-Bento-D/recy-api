@@ -16,16 +16,17 @@ import { AuditService } from './audit.service';
   imports: [
     LoggerModule,
     Web3Module,
-    BullModule.registerQueue({
-      name: REPORT_QUEUE,
-    }),
-    BullBoardModule.forFeature({
-      name: REPORT_QUEUE,
-      adapter: BullMQAdapter,
-    }),
+    // BullModule.registerQueue({
+    //   name: REPORT_QUEUE,
+    // }),
+    // BullBoardModule.forFeature({
+    //   name: REPORT_QUEUE,
+    //   adapter: BullMQAdapter,
+    // }),
   ],
   providers: [AuditService, PrismaService, UserService],
   controllers: [AuditController],
-  exports: [AuditService, BullModule],
+  //exports: BullModule
+  exports: [AuditService],
 })
 export class AuditModule {}

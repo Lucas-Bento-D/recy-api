@@ -47,32 +47,32 @@ import { UploadModule } from './shared/modules/upload/upload.module';
         limit: 100,
       },
     ]),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST'),
-          port: config.get<number>('REDIS_PORT'),
-        },
-        tls: true,
-      }),
-    }),
-    BullMQModule.registerQueueAsync({
-      name: REPORT_QUEUE,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST'),
-          port: config.get<number>('REDIS_PORT'),
-        },
-      }),
-    }),
-    BullBoardModule.forRoot({
-      route: '/queues',
-      adapter: ExpressAdapter,
-    }),
+    // BullModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (config: ConfigService) => ({
+    //     connection: {
+    //       host: config.get<string>('REDIS_HOST'),
+    //       port: config.get<number>('REDIS_PORT'),
+    //     },
+    //     tls: true,
+    //   }),
+    // }),
+    // BullMQModule.registerQueueAsync({
+    //   name: REPORT_QUEUE,
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (config: ConfigService) => ({
+    //     connection: {
+    //       host: config.get<string>('REDIS_HOST'),
+    //       port: config.get<number>('REDIS_PORT'),
+    //     },
+    //   }),
+    // }),
+    // BullBoardModule.forRoot({
+    //   route: '/queues',
+    //   adapter: ExpressAdapter,
+    // }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
     }),
@@ -84,8 +84,8 @@ import { UploadModule } from './shared/modules/upload/upload.module';
       useClass: ThrottlerGuard,
     },
     PrismaService,
-    BullMQEventsListener,
-    BullMQProcessor,
+    // BullMQEventsListener,
+    // BullMQProcessor,
   ],
 })
 export class AppModule {}
