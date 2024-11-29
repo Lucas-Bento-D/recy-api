@@ -4,7 +4,6 @@ import { BullModule, BullModule as BullMQModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { join } from 'path';
 
@@ -73,9 +72,6 @@ import { UploadModule } from './shared/modules/upload/upload.module';
     //   route: '/queues',
     //   adapter: ExpressAdapter,
     // }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
-    }),
   ],
   controllers: [],
   providers: [
