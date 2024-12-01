@@ -5,7 +5,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { join } from 'path';
 
 import { AuditModule } from './modules/audits/audit.module';
 import { REPORT_QUEUE } from './modules/bullmq/bullmq.constants';
@@ -46,32 +45,32 @@ import { UploadModule } from './shared/modules/upload/upload.module';
         limit: 100,
       },
     ]),
-    // BullModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (config: ConfigService) => ({
-    //     connection: {
-    //       host: config.get<string>('REDIS_HOST'),
-    //       port: config.get<number>('REDIS_PORT'),
-    //     },
-    //     tls: true,
-    //   }),
-    // }),
-    // BullMQModule.registerQueueAsync({
-    //   name: REPORT_QUEUE,
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (config: ConfigService) => ({
-    //     connection: {
-    //       host: config.get<string>('REDIS_HOST'),
-    //       port: config.get<number>('REDIS_PORT'),
-    //     },
-    //   }),
-    // }),
-    // BullBoardModule.forRoot({
-    //   route: '/queues',
-    //   adapter: ExpressAdapter,
-    // }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
+        },
+        tls: true,
+      }),
+    }),
+    BullMQModule.registerQueueAsync({
+      name: REPORT_QUEUE,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
+        },
+      }),
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
+    }),
   ],
   controllers: [],
   providers: [
@@ -80,8 +79,8 @@ import { UploadModule } from './shared/modules/upload/upload.module';
       useClass: ThrottlerGuard,
     },
     PrismaService,
-    // BullMQEventsListener,
-    // BullMQProcessor,
+    BullMQEventsListener,
+    BullMQProcessor,
   ],
 })
 export class AppModule {}
