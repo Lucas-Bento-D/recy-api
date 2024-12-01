@@ -1,7 +1,8 @@
 services:
-  database:
+  recy-postgres:
+    # ref: https://hub.docker.com/_/postgres
     image: postgres:16
-    container_name: recy-database
+    container_name: recy-postgres
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -15,34 +16,31 @@ services:
       - .env
     networks:
       - recy-network
-
-  backend:
+  recy-backend:
     build: .
     container_name: recy-backend
     restart: always
     ports:
       - '80:80'
     depends_on:
-      - database
-      - redis
+      - recy-postgres
+      - recy-redis
     env_file:
       - .env
     networks:
       - recy-network
-
-  redis:
-    image: redis:latest
+  recy-redis:
+  # ref: https://hub.docker.com/_/redis
+    image: redis:7-alpine
     container_name: recy-redis
     restart: always
     ports:
       - '6379:6379'
     networks:
       - recy-network
-
 volumes:
   postgres-volume:
     external: false
-
 networks:
   recy-network:
     external: false
