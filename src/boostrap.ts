@@ -28,7 +28,7 @@ export async function bootstrap() {
 
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: '1',
+    // defaultVersion: '1',
   });
 
   await setupSwagger(app);
