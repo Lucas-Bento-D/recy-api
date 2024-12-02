@@ -4,14 +4,15 @@ FROM docker.io/node:${NODE_VERSION}-alpine3.19 AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache \
-	pkgconfig \
-	gcc \
-	pixman-dev \
-	cairo-dev \
-	pango-dev \
-	make \
-	build-base
+RUN apk --update --no-cache add curl && \
+    apk add --no-cache \
+    pkgconfig \
+    gcc \
+    pixman-dev \
+    cairo-dev \
+    pango-dev \
+    make \
+    build-base
 
 COPY package*.json ./
 
