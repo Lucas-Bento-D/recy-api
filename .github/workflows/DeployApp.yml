@@ -41,11 +41,14 @@ jobs:
         run: |
           aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
 
-      - name: Build and Push Docker Image (dist)
+      - name: Build and Push Docker Image
         run: |
           docker buildx create --use
           docker buildx inspect --bootstrap
-          docker buildx build --platform linux/arm64 -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_IMAGE:${{ github.sha }} --target dist --push .
+          docker buildx build --platform linux/arm64 \
+            -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_IMAGE:${{ github.sha }} \
+            -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_IMAGE:latest \
+            --target dist --push .
 
       - name: Deploy to ECS
         uses: imehedi/actions-awscli-v2@latest
