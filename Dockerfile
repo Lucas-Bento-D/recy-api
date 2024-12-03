@@ -1,5 +1,5 @@
+# Set the Node.js version as an argument to allow easy version management
 ARG NODE_VERSION="20.17"
-
 FROM docker.io/node:${NODE_VERSION}-alpine3.19 AS base
 
 WORKDIR /app
@@ -17,6 +17,7 @@ RUN apk --update --no-cache add curl && \
 COPY package*.json ./
 
 RUN npm cache clean --force
+
 RUN npm ci
 
 COPY . .
@@ -27,4 +28,18 @@ RUN npm run build
 
 EXPOSE 80
 
-CMD [ "npm", "run", "start:migrate:prod" ]
+CMD ["npm", "run", "start:migrate:prod"]
+
+# -----
+# Output image for production use (optimized)
+# -----
+FROM base AS dist
+
+COPY --from=base /app/node_modules/ /app/node_modules/
+COPY --from=base /app/dist/ /app/dist/
+
+EXPOSE 80
+
+CMD ["npm", "run", "start:migrate:prod"]
+
+LABEL org.opencontainers.image.title="Recy App (Production)"
