@@ -22,8 +22,7 @@ export class BullMQProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any>, token: string | undefined): Promise<any> {
-    console.log(token);
+  async process(job: Job<any>): Promise<any> {
     switch (job.name) {
       case JOBS.reportEvidence:
         return this.reportEvidence(job);
@@ -60,11 +59,13 @@ export class BullMQProcessor extends WorkerHost {
       const templateBackground = await loadImage(filePath);
       console.log('Template image loaded successfully.');
 
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
       // Draw the template on the canvas
       ctx.drawImage(templateBackground, 0, 0, canvasWidth, canvasHeight);
 
       // Define font style
-      ctx.font = '24px sans-serif';
+      ctx.font = '24px Arial, sans-serif';
       console.log('Font set to 24px Arial');
 
       // Adjust vertical alignment by moving 20px higher

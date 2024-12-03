@@ -1,4 +1,3 @@
-# Set the Node.js version as an argument to allow easy version management
 ARG NODE_VERSION="20.17"
 FROM docker.io/node:${NODE_VERSION}-alpine3.19 AS base
 
