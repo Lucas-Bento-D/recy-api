@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InternalServerErrorException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { Job } from 'bullmq';
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas, loadImage, registerFont } from 'canvas';
 import { existsSync } from 'fs';
 import path from 'path';
 
@@ -42,45 +42,43 @@ export class BullMQProcessor extends WorkerHost {
       const canvas = createCanvas(canvasWidth, canvasHeight);
       const ctx = canvas.getContext('2d');
 
-      // Correct the path to point to the desired template file
       const filePath = path.join(
         __dirname,
         '../../../public/imgs/recy-report-template.png',
       );
 
-      // Check if the template file exists
-      console.log('Checking if template file exists at:', filePath);
       if (!existsSync(filePath)) {
         throw new Error(`Template file not found at path: ${filePath}`);
       }
 
-      // Load the template background image
-      console.log('Loading template image...');
+      const fontPath = path.join(
+        __dirname,
+        '../../../public/fonts/Roboto-Regular.ttf',
+      );
+
+      if (!existsSync(fontPath)) {
+        throw new Error(`Font file not found at path: ${fontPath}`);
+      }
+
+      registerFont(fontPath, { family: 'Roboto' });
       const templateBackground = await loadImage(filePath);
-      console.log('Template image loaded successfully.');
 
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-      // Draw the template on the canvas
       ctx.drawImage(templateBackground, 0, 0, canvasWidth, canvasHeight);
 
-      // Define font style
-      ctx.font = '24px Arial, sans-serif';
-      console.log('Font set to 24px Arial');
+      ctx.font = '24px "Roboto", sans-serif';
 
       // Adjust vertical alignment by moving 20px higher
       const verticalOffset = 20; // Adjust text block position slightly
       const baseYPosition = canvasHeight / 2 + verticalOffset;
-      console.log('Base Y Position for text:', baseYPosition);
 
       // Positioning for left-side text
       const leftTextX = 300; // Moved closer to the center
       const leftTextYStart = baseYPosition - 50; // Starting position for left text
       const textSpacing = 40; // Increased spacing between lines
-      console.log('Left Text Position (X, Y):', leftTextX, leftTextYStart);
 
       // Draw left-side text with different colors
-      console.log('Drawing left-side text...');
       ctx.fillStyle = '#173C09';
       ctx.fillText('Issued by:', leftTextX, leftTextYStart);
 
@@ -101,25 +99,14 @@ export class BullMQProcessor extends WorkerHost {
       const materials = metadata.attributes.filter(
         (material) => material.value && /kg/i.test(material.value),
       );
-      console.log('Filtered Materials:', materials);
 
       // Positioning for materials on the right side
       const rightTextX = canvasWidth - 500; // Moved closer to center
       const rightTextYStart =
         baseYPosition - materials.length * (textSpacing / 2); // Align with left text
-      console.log(
-        'Right Text Start Position (X, Y):',
-        rightTextX,
-        rightTextYStart,
-      );
 
       let rightTextY = rightTextYStart;
-      materials.forEach((attribute, index) => {
-        console.log(
-          `Drawing right-side text for material #${index + 1}:`,
-          attribute,
-        );
-
+      materials.forEach((attribute) => {
         // Draw the trait type above the attribute value
         ctx.fillStyle = '#173C09';
         ctx.fillText(attribute.trait_type, rightTextX, rightTextY);
@@ -134,10 +121,8 @@ export class BullMQProcessor extends WorkerHost {
       });
 
       const imageBuffer = canvas.toBuffer('image/png');
-      console.log('Image buffer generated successfully');
       return imageBuffer;
     } catch (error) {
-      console.error('Error generating image:', error);
       throw new InternalServerErrorException(error);
     }
   }
@@ -177,8 +162,6 @@ export class BullMQProcessor extends WorkerHost {
       name: 'RECY Report',
     };
 
-    // TODO: update audited boolean
-
     // Generate PNG image buffer representing the report
     const pngImageBuffer = await this.generateReportImage(
       jsonMetadata,
@@ -209,7 +192,7 @@ export class BullMQProcessor extends WorkerHost {
 
     // Update the metadata with the actual image URL
     const metadataWithReportEvidence = {
-      ...jsonMetadata,
+      json: jsonMetadata,
       reportEvidence: reportEvidenceUrlUploaded,
     };
 
@@ -219,6 +202,7 @@ export class BullMQProcessor extends WorkerHost {
       },
       data: {
         ...report,
+        audited: true,
         metadata: metadataWithReportEvidence,
       },
     });

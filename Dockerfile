@@ -11,7 +11,10 @@ RUN apk --update --no-cache add curl && \
     cairo-dev \
     pango-dev \
     make \
-    build-base
+    build-base \
+    fontconfig \
+    ttf-freefont \
+    libjpeg-turbo-dev
 
 COPY package*.json ./
 
