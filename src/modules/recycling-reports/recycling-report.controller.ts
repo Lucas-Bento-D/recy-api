@@ -42,7 +42,7 @@ import { RecyclingReportService } from './recycling-report.service';
 export class RecyclingReportController {
   constructor(
     private readonly recyclingReportService: RecyclingReportService,
-  ) {}
+  ) { }
 
   @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
@@ -74,8 +74,8 @@ export class RecyclingReportController {
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }
 
-  // @UseGuards(PermissionsGuard(RecyclingReportPermissions))
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
+  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
   @ApiResponse({
