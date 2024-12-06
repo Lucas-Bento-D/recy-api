@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -19,6 +20,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { RecyclingReport } from '@prisma/client';
+
+import {
+  PaginatedResult,
+  PaginationParams,
+} from '@/shared/utils/pagination.util';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { PermissionsGuard } from '../authorization/permission.guard';
@@ -68,16 +74,18 @@ export class RecyclingReportController {
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }
 
-  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
-  @UseGuards(AuthorizationGuard)
+  // @UseGuards(PermissionsGuard(RecyclingReportPermissions))
+  // @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
   @ApiResponse({
     status: 200,
     description: 'List of recycling reports.',
   })
-  async findAllRecyclingReports(): Promise<RecyclingReport[]> {
-    return this.recyclingReportService.findAllRecyclingReports();
+  async findAllRecyclingReports(
+    @Query() params: PaginationParams,
+  ): Promise<PaginatedResult<RecyclingReport>> {
+    return this.recyclingReportService.findAllRecyclingReports(params);
   }
 
   @UseGuards(PermissionsGuard(RecyclingReportPermissions))

@@ -3,6 +3,11 @@ import { RecyclingReport } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import {
+  paginate,
+  PaginatedResult,
+  PaginationParams,
+} from '@/shared/utils/pagination.util';
 
 import { UploadService } from '../../shared/modules/upload/upload.service';
 import { AuditService } from '../audits/audit.service';
@@ -77,9 +82,12 @@ export class RecyclingReportService {
     return createdReport;
   }
 
-  async findAllRecyclingReports(): Promise<RecyclingReport[]> {
-    return this.prisma.recyclingReport.findMany({
+  async findAllRecyclingReports(
+    params: PaginationParams,
+  ): Promise<PaginatedResult<RecyclingReport>> {
+    return paginate<RecyclingReport>(this.prisma.recyclingReport, params, {
       include: { user: true, audits: true },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
