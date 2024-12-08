@@ -1,0 +1,100 @@
+import { ConfigService } from '@nestjs/config';
+import { IncomingMessage, ServerResponse } from 'http';
+import { Params } from 'nestjs-pino';
+import { GenReqId, Options } from 'pino-http';
+import { ulid } from 'ulid';
+
+const genReqId: GenReqId = (
+  req: IncomingMessage,
+  res: ServerResponse<IncomingMessage>,
+) => {
+  const headerId = req.headers['x-request-id'];
+  const id = typeof headerId === 'string' && headerId ? headerId : ulid();
+  res.setHeader('X-Request-Id', String(id));
+  return id;
+};
+
+const customReceivedMessage = (req: IncomingMessage): string => {
+  const reqId = String((req as any).id || '*');
+  return `[${reqId}] => Request received: "${req.method} ${req.url}"`;
+};
+
+const customSuccessMessage = (
+  req: IncomingMessage,
+  res: ServerResponse<IncomingMessage>,
+  responseTime: number,
+): string => {
+  const reqId = String((req as any).id || '*');
+  return `[${reqId}] "${req.method} ${req.url}" ${res.statusCode} - ${responseTime} ms`;
+};
+
+const customErrorMessage = (
+  req: IncomingMessage,
+  res: ServerResponse<IncomingMessage>,
+  err: Error,
+): string => {
+  const reqId = String((req as any).id || '*');
+  return `[${reqId}] "${req.method} ${req.url}" ${res.statusCode} - Error: ${err.message}`;
+};
+
+const loggingRedactPaths = [
+  'req.headers.authorization',
+  'req.body.password',
+  'req.headers.cookie',
+];
+
+function consoleLoggingConfig(): Options {
+  return {
+    messageKey: 'msg',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        singleLine: true,
+        colorize: true,
+        translateTime: 'SYS:standard',
+      },
+    },
+  };
+}
+
+async function loggerFactory(configService: ConfigService): Promise<Params> {
+  const logLevel =
+    configService.get<string>('app.logLevel', { infer: true }) || 'info';
+  const isDebug =
+    configService.get<boolean>('app.debug', { infer: true }) || false;
+
+  const pinoHttpOptions: Options = {
+    level: logLevel,
+    genReqId: isDebug ? genReqId : undefined,
+    customReceivedMessage,
+    customSuccessMessage,
+    customErrorMessage,
+    serializers: {
+      req: (req) => {
+        const serializedReq: Record<string, unknown> = {
+          id: req.id,
+          method: req.method,
+          url: req.url,
+        };
+        if (isDebug && req.raw && req.raw.body) {
+          serializedReq.body = req.raw.body;
+        }
+        return serializedReq;
+      },
+      res: (res) => ({
+        statusCode: res.statusCode,
+      }),
+    },
+    redact: {
+      paths: loggingRedactPaths,
+      censor: '**REDACTED**',
+    },
+    ...consoleLoggingConfig(),
+  };
+
+  return {
+    pinoHttp: pinoHttpOptions,
+  };
+}
+
+export default loggerFactory;
