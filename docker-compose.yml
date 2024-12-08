@@ -24,7 +24,7 @@ services:
       - '80:80'
     environment:
       - DATADOG_HOST=datadog
-      - DD_AGENT_HOST=dd-agent
+      - DD_AGENT_HOST=recy-datadog-agent
       - DD_ENV=${DD_ENV}
       - DD_SERVICE=${DD_SERVICE}
       - DD_VERSION=${DD_VERSION}
@@ -51,8 +51,8 @@ services:
     networks:
       - recy-network
 
-  datadog:
-    container_name: dd-agent
+  recy-datadog-agent:
+    container_name: recy-datadog-agent
     image: gcr.io/datadoghq/agent:7
     environment:
       - DD_API_KEY=${DD_API_KEY}
@@ -60,7 +60,7 @@ services:
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_APM_ENABLED=true
       - DD_APM_NON_LOCAL_TRAFFIC=true
-      - DD_AGENT_HOST=dd-agent
+      - DD_AGENT_HOST=recy-datadog-agent
     env_file:
       - .env
     volumes:
