@@ -43,18 +43,24 @@ const loggingRedactPaths = [
   'req.headers.cookie',
 ];
 
-function consoleLoggingConfig(): Options {
-  return {
-    messageKey: 'msg',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        singleLine: true,
-        colorize: true,
-        translateTime: 'SYS:standard',
+function consoleLoggingConfig(isProduction: boolean): Options {
+  if (!isProduction) {
+    return {
+      messageKey: 'msg',
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          singleLine: true,
+          colorize: true,
+          translateTime: 'SYS:standard',
+        },
       },
-    },
-  };
+    };
+  } else {
+    return {
+      messageKey: 'msg',
+    };
+  }
 }
 
 async function loggerFactory(configService: ConfigService): Promise<Params> {
@@ -62,6 +68,8 @@ async function loggerFactory(configService: ConfigService): Promise<Params> {
     configService.get<string>('app.logLevel', { infer: true }) || 'info';
   const isDebug =
     configService.get<boolean>('app.debug', { infer: true }) || false;
+
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const pinoHttpOptions: Options = {
     level: logLevel,
@@ -89,7 +97,7 @@ async function loggerFactory(configService: ConfigService): Promise<Params> {
       paths: loggingRedactPaths,
       censor: '**REDACTED**',
     },
-    ...consoleLoggingConfig(),
+    ...consoleLoggingConfig(isProduction),
   };
 
   return {
