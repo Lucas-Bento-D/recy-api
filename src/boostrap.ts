@@ -1,17 +1,15 @@
+import './tracing';
+
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import winston from 'winston';
 
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './exception-filter';
-import { winstonLoggerOptions } from './shared/modules/logger/logger.config';
 import { setupSwagger } from './shared/swagger/swagger.controller';
 
 export async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: winston.createLogger(winstonLoggerOptions),
-  });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
 
