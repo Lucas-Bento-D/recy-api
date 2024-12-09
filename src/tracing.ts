@@ -1,6 +1,6 @@
 import tracer from 'dd-trace';
 
-if (process.env.DD_ENV === 'staging') {
+if (process.env.DD_ENV === 'production' || process.env.DD_ENV === 'staging') {
   // TODO: integrate with pino logger
   // logger.info('Initializing Datadog tracing with the following settings:');
   // logger.info({ service: process.env.DD_SERVICE || 'recy-backend' }, 'Service');
