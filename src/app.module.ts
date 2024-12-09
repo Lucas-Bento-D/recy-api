@@ -5,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { DatadogTraceModule } from 'nestjs-ddtrace';
 
 import { AuditModule } from './modules/audits/audit.module';
 import { REPORT_QUEUE } from './modules/bullmq/bullmq.constants';
@@ -33,6 +34,10 @@ import { UploadModule } from './shared/modules/upload/upload.module';
     AuditModule,
     UserModule,
     HealthModule,
+    DatadogTraceModule.forRoot({
+      controllers: true,
+      providers: true,
+    }),
     ThrottlerModule.forRoot([
       {
         name: 'short',
