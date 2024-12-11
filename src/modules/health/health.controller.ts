@@ -1,10 +1,10 @@
-import { RedisHealthIndicator } from '@liaoliaots/nestjs-redis-health';
 import { Controller, Get, OnModuleDestroy } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
+import { RedisHealthIndicator } from '@songkeys/nestjs-redis-health';
 import Redis from 'ioredis';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
