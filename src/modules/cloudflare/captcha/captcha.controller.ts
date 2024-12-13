@@ -1,14 +1,18 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Post, UsePipes } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { CaptchaService } from './captcha.service';
+import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
+import { CaptchaService } from './captcha.service';
+import { TokenSchema, TokenSchemaDto } from './dtos/token.dto';
 @ApiTags('captcha')
 @Controller({ path: 'captcha', version: '1' })
 export class CaptchaController {
   constructor(private readonly captchaService: CaptchaService) {}
-  @Get('')
-  async captcha() {
-    return this.captchaService.captchaVerification();
+
+  @Post()
+  @UsePipes(new ZodValidationPipe(TokenSchema))
+  async captcha(@Body() TokenSchemaDto: TokenSchemaDto): Promise<any> {
+    return await this.captchaService.captchaVerification(TokenSchemaDto);
   }
 }
