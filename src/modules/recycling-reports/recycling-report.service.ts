@@ -14,6 +14,7 @@ import { AuditService } from '../audits/audit.service';
 import { UserService } from '../users/user.service';
 import { CreateRecyclingReportDto } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
+import { RecyclingReportQueryParams } from './interface/recycling-report.types';
 
 @Injectable()
 export class RecyclingReportService {
@@ -83,7 +84,7 @@ export class RecyclingReportService {
   }
 
   async findAllRecyclingReports(
-    params: PaginationParams,
+    params: RecyclingReportQueryParams,
   ): Promise<PaginatedResult<RecyclingReport>> {
     return paginate<RecyclingReport>(
       () =>

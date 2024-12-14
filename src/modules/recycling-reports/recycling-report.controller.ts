@@ -34,6 +34,7 @@ import {
   CreateRecyclingReportSwaggerDto,
 } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
+import { RecyclingReportQueryParams } from './interface/recycling-report.types';
 import { RecyclingReportPermissions } from './recycling-report.permissions';
 import { RecyclingReportService } from './recycling-report.service';
 
@@ -81,7 +82,7 @@ export class RecyclingReportController {
     description: 'List of recycling reports.',
   })
   async findAllRecyclingReports(
-    @Query() params: PaginationParams,
+    @Query() params: RecyclingReportQueryParams,
   ): Promise<PaginatedResult<RecyclingReport>> {
     const { page, limit } = params;
     return this.recyclingReportService.findAllRecyclingReports({ page, limit });

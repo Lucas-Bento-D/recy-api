@@ -8,13 +8,15 @@ import { User } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { paginate, PaginatedResult } from '@/shared/utils/pagination.util';
 
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { UserQueryParams } from './interface/user.types';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async checkUserExists(userId: string): Promise<User> {
     const user = await this.prisma.user.findUnique({
@@ -175,15 +177,25 @@ export class UserService {
     return user;
   }
 
-  async findAllUsers(): Promise<User[]> {
-    const users = await this.prisma.user.findMany({
-      include: {
-        userRoles: { include: { role: true } },
-        audits: true,
-        recyclingReports: true,
-      },
-    });
-
-    return users;
+  async findAllUsers(params: UserQueryParams): Promise<PaginatedResult<User>> {
+    return paginate<User>(
+      () =>
+        this.prisma.user.count({
+          where: {},
+        }),
+      (skip, take) =>
+        this.prisma.user.findMany({
+          skip,
+          take,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            userRoles: { include: { role: true } },
+            audits: true,
+            recyclingReports: true,
+          },
+          where: {},
+        }),
+      params,
+    );
   }
 }

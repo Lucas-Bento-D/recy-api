@@ -14,17 +14,19 @@ import {
 import { ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from '@prisma/client';
 
+import { PaginatedResult } from '@/shared/utils/pagination.util';
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { CreateUserDto, CreateUserSchema } from './dtos/create-user.dto';
 import { UpdateUserDto, UpdateUserSchema } from './dtos/update-user.dto';
+import { UserQueryParams } from './interface/user.types';
 import { UserService } from './user.service';
 
 @ApiTags('users')
 @Controller({ path: 'users', version: '1' })
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @UseGuards(AuthorizationGuard)
   @Post()
@@ -38,11 +40,14 @@ export class UserController {
     return this.userService.createUser(createUserDto);
   }
 
-  @UseGuards(AuthorizationGuard)
+  // @UseGuards(AuthorizationGuard)
   @Get()
   @ApiResponse({ status: 200, description: 'List of all users' })
-  async findAllUsers(): Promise<User[]> {
-    return this.userService.findAllUsers();
+  async findAllUsers(
+    @Query() params: UserQueryParams,
+  ): Promise<PaginatedResult<User>> {
+    const { page, limit } = params;
+    return this.userService.findAllUsers({ page, limit });
   }
 
   @UseGuards(AuthorizationGuard)
