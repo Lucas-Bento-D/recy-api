@@ -5,11 +5,13 @@ import { Queue } from 'bullmq';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import { paginate, PaginatedResult } from '@/shared/utils/pagination.util';
 
 import { JOBS, REPORT_QUEUE } from '../bullmq/bullmq.constants';
 import { UserService } from '../users/user.service';
 import { CreateAuditDto } from './dtos/create-audit.dto';
 import { UpdateAuditDto } from './dtos/update-audit.dto';
+import { AuditQueryParams } from './interface/audit.types';
 
 @Injectable()
 export class AuditService {
@@ -17,7 +19,7 @@ export class AuditService {
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
     @InjectQueue(REPORT_QUEUE) readonly bullMQQueue: Queue,
-  ) {}
+  ) { }
 
   private async processAfterAuditValidated(auditId: string) {
     try {
@@ -115,12 +117,23 @@ export class AuditService {
     }
   }
 
-  async findAllAudits(): Promise<Audit[]> {
-    try {
-      return await this.prisma.audit.findMany();
-    } catch (error) {
-      throw error;
-    }
+  async findAllAudits(
+    params: AuditQueryParams,
+  ): Promise<PaginatedResult<Audit>> {
+    return paginate<Audit>(
+      () =>
+        this.prisma.audit.count({
+          where: {},
+        }),
+      (skip, take) =>
+        this.prisma.audit.findMany({
+          skip,
+          take,
+          orderBy: { createdAt: 'desc' },
+          where: {},
+        }),
+      params,
+    );
   }
 
   async findAuditById(id: string): Promise<Audit> {

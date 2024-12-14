@@ -11,7 +11,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from '@prisma/client';
 
 import { PaginatedResult } from '@/shared/utils/pagination.util';
@@ -40,7 +40,7 @@ export class UserController {
     return this.userService.createUser(createUserDto);
   }
 
-  // @UseGuards(AuthorizationGuard)
+  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiResponse({ status: 200, description: 'List of all users' })
   async findAllUsers(

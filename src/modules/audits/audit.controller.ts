@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Audit } from '@prisma/client';
 
+import { PaginatedResult } from '@/shared/utils/pagination.util';
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
@@ -20,11 +22,12 @@ import { AuditPermissions } from './audit.permissions';
 import { AuditService } from './audit.service';
 import { CreateAuditDto, CreateAuditSchema } from './dtos/create-audit.dto';
 import { UpdateAuditDto, UpdateAuditSchema } from './dtos/update-audit.dto';
+import { AuditQueryParams } from './interface/audit.types';
 
 @ApiTags('audits')
 @Controller({ path: 'audits', version: '1' })
 export class AuditController {
-  constructor(private readonly auditService: AuditService) {}
+  constructor(private readonly auditService: AuditService) { }
 
   @UseGuards(PermissionsGuard(AuditPermissions))
   @UseGuards(AuthorizationGuard)
@@ -51,8 +54,11 @@ export class AuditController {
   @ApiResponse({
     status: 200,
   })
-  async findAll(): Promise<Audit[]> {
-    return this.auditService.findAllAudits();
+  async findAll(
+    @Query() params: AuditQueryParams,
+  ): Promise<PaginatedResult<Audit>> {
+    const { page, limit } = params;
+    return this.auditService.findAllAudits({ page, limit });
   }
 
   @UseGuards(PermissionsGuard(AuditPermissions))
