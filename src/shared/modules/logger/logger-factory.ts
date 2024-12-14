@@ -1,21 +1,21 @@
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Params } from 'nestjs-pino';
 import { GenReqId, Options } from 'pino-http';
-import { ulid } from 'ulid';
 
 const genReqId: GenReqId = (
   req: IncomingMessage,
   res: ServerResponse<IncomingMessage>,
 ) => {
   const headerId = req.headers['x-request-id'];
-  const id = typeof headerId === 'string' && headerId ? headerId : ulid();
+  const id = typeof headerId === 'string' && headerId ? headerId : randomUUID();
   res.setHeader('X-Request-Id', String(id));
   return id;
 };
 
 const customReceivedMessage = (req: IncomingMessage): string => {
-  const reqId = String((req as any).id || '*');
+  const reqId = String(req.id || '*');
   return `[${reqId}] => Request received: "${req.method} ${req.url}"`;
 };
 
@@ -24,7 +24,7 @@ const customSuccessMessage = (
   res: ServerResponse<IncomingMessage>,
   responseTime: number,
 ): string => {
-  const reqId = String((req as any).id || '*');
+  const reqId = String(req.id || '*');
   return `[${reqId}] "${req.method} ${req.url}" ${res.statusCode} - ${responseTime} ms`;
 };
 
@@ -33,7 +33,7 @@ const customErrorMessage = (
   res: ServerResponse<IncomingMessage>,
   err: Error,
 ): string => {
-  const reqId = String((req as any).id || '*');
+  const reqId = String(req.id || '*');
   return `[${reqId}] "${req.method} ${req.url}" ${res.statusCode} - Error: ${err.message}`;
 };
 
