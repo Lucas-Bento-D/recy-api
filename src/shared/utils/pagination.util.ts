@@ -1,20 +1,17 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { z } from 'zod';
 
-export class PaginationDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number;
+export const PaginationSchema = z.object({
+  page: z.preprocess(
+    (val) => parseInt(val as string, 10),
+    z.number().int().min(1).optional(),
+  ),
+  limit: z.preprocess(
+    (val) => parseInt(val as string, 10),
+    z.number().int().min(1).max(100).optional(),
+  ),
+});
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number;
-}
+export type PaginationDto = z.infer<typeof PaginationSchema>;
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -33,25 +30,23 @@ export async function paginate<T>(
   getData: (skip: number, take: number) => Promise<T[]>,
   params: PaginationParams,
 ): Promise<PaginatedResult<T>> {
-  const { page = 1, limit = 10 } = params;
-
-  const sanitizedPage = Math.max(page, 1);
-  const sanitizedLimit = Math.max(limit, 1);
-
-  const skip = (sanitizedPage - 1) * sanitizedLimit;
-  const take = sanitizedLimit;
-
-  try {
-    const [total, data] = await Promise.all([getCount(), getData(skip, take)]);
-    const totalPages = Math.ceil(total / take);
-
-    return {
-      data,
-      total,
-      totalPages,
-      currentPage: sanitizedPage,
-    };
-  } catch (error) {
-    throw new Error(`Pagination failed: ${(error as Error).message}`);
+  const parsed = PaginationSchema.safeParse(params);
+  if (!parsed.success) {
+    throw new Error('Invalid pagination parameters');
   }
+
+  const { page = 1, limit = 10 } = parsed.data;
+
+  const skip = (page - 1) * limit;
+  const take = limit;
+
+  const [total, data] = await Promise.all([getCount(), getData(skip, take)]);
+  const totalPages = Math.ceil(total / take);
+
+  return {
+    data,
+    total,
+    totalPages,
+    currentPage: page,
+  };
 }
