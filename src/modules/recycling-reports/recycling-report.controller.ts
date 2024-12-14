@@ -74,8 +74,6 @@ export class RecyclingReportController {
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }
 
-  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
-  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
   @ApiResponse({
@@ -85,7 +83,8 @@ export class RecyclingReportController {
   async findAllRecyclingReports(
     @Query() params: PaginationParams,
   ): Promise<PaginatedResult<RecyclingReport>> {
-    return this.recyclingReportService.findAllRecyclingReports(params);
+    const { page, limit } = params;
+    return this.recyclingReportService.findAllRecyclingReports({ page, limit });
   }
 
   @UseGuards(PermissionsGuard(RecyclingReportPermissions))

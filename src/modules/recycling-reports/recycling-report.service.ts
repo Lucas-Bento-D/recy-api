@@ -22,7 +22,7 @@ export class RecyclingReportService {
     private readonly auditService: AuditService,
     private readonly uploadService: UploadService,
     private readonly userService: UserService,
-  ) {}
+  ) { }
 
   //TODO: recyclingEvidence x reportEvidence
 
@@ -85,10 +85,21 @@ export class RecyclingReportService {
   async findAllRecyclingReports(
     params: PaginationParams,
   ): Promise<PaginatedResult<RecyclingReport>> {
-    return paginate<RecyclingReport>(this.prisma.recyclingReport, params, {
-      include: { user: true, audits: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    return paginate<RecyclingReport>(
+      () =>
+        this.prisma.recyclingReport.count({
+          where: {},
+        }),
+      (skip, take) =>
+        this.prisma.recyclingReport.findMany({
+          skip,
+          take,
+          orderBy: { createdAt: 'desc' },
+          include: { user: true, audits: true },
+          where: {},
+        }),
+      params,
+    );
   }
 
   async findRecyclingReportById(id: string): Promise<RecyclingReport> {
