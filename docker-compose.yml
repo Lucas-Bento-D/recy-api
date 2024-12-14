@@ -1,6 +1,5 @@
 services:
   recy-postgres:
-    # ref: https://hub.docker.com/_/postgres
     image: postgres:16
     container_name: recy-postgres
     restart: always
@@ -16,14 +15,21 @@ services:
       - .env
     networks:
       - recy-network
+
   recy-backend:
     build: .
     container_name: recy-backend
     restart: always
     ports:
       - '80:80'
+    environment:
+      - DATADOG_HOST=datadog
+      - DD_AGENT_HOST=recy-datadog-agent
+      - DD_ENV=${DD_ENV}
+      - DD_SERVICE=${DD_SERVICE}
+      - DD_VERSION=${DD_VERSION}
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:80/health"]
+      test: ['CMD', 'curl', '--fail', 'http://localhost:80/health']
       interval: 60s
       timeout: 10s
       retries: 5
@@ -35,8 +41,8 @@ services:
       - .env
     networks:
       - recy-network
+
   recy-redis:
-  # ref: https://hub.docker.com/_/redis
     image: redis:7-alpine
     container_name: recy-redis
     restart: always
@@ -44,9 +50,32 @@ services:
       - '6379:6379'
     networks:
       - recy-network
+
+  recy-datadog-agent:
+    container_name: recy-datadog-agent
+    image: gcr.io/datadoghq/agent:7
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=datadoghq.com
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_APM_ENABLED=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_AGENT_HOST=recy-datadog-agent
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - recy-network
+    restart: always
+
 volumes:
   postgres-volume:
     external: false
+
 networks:
   recy-network:
     external: false
