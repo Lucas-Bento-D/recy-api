@@ -1,10 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 import { TokenSchemaDto } from './dtos/token.dto';
-
+import { CaptchaVerificationResponse } from './types';
 @Injectable()
 export class CaptchaService {
-  async captchaVerification({ token }: TokenSchemaDto): Promise<any> {
+  async captchaVerification({ token }: TokenSchemaDto): Promise<CaptchaVerificationResponse> {
     try {
       const formData = new FormData();
       formData.append('secret', process.env.CAPTCHA_SECRET_KEY);
@@ -23,7 +23,8 @@ export class CaptchaService {
         );
       }
 
-      const data = await result.json();
+      const data = await result.json() as CaptchaVerificationResponse;
+
       if (!data.success){
         throw new Error(
           `CAPTCHA verification error: ${
@@ -31,7 +32,7 @@ export class CaptchaService {
           }`,
         );
       }
-
+      
       return data;
     } catch (error) {
       // TODO:  Log the detailed error for internal debugging
