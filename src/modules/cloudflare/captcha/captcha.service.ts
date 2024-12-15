@@ -2,37 +2,54 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 import { TokenSchemaDto } from './dtos/token.dto';
 import { CaptchaVerificationResponse } from './types';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class CaptchaService {
-  async captchaVerification({ token }: TokenSchemaDto): Promise<CaptchaVerificationResponse> {
+  constructor(private configService: ConfigService) {}
+
+  async captchaVerification({
+    token,
+  }: TokenSchemaDto): Promise<CaptchaVerificationResponse> {
     try {
       const formData = new FormData();
-      formData.append('secret', process.env.CAPTCHA_SECRET_KEY);
+
+      const secretKey = this.configService.get<string>('CAPTCHA_SECRET_KEY');
+      const hostVerificationUrl = this.configService.get<string>(
+        'CAPTCHA_HOST_VERIFICATION',
+      );
+
+      if (!secretKey || !hostVerificationUrl){
+        throw new Error(
+          'CAPTCHA environment variables are not configured properly.',
+        );
+      }
+
+      formData.append('secret', secretKey);
       formData.append('response', token);
 
-      const url = `${process.env.CAPTCHA_HOST_VERIFICATION}/turnstile/v0/siteverify`;
+      const url = `${hostVerificationUrl}/turnstile/v0/siteverify`;
 
       const result = await fetch(url, {
         body: formData,
         method: 'POST',
       });
 
-      if (!result.ok){
+      if (!result.ok) {
         throw new Error(
           `CAPTCHA verification failed with status: ${result.status}`,
         );
       }
 
-      const data = await result.json() as CaptchaVerificationResponse;
+      const data = (await result.json()) as CaptchaVerificationResponse;
 
-      if (!data.success){
+      if (!data.success) {
         throw new Error(
           `CAPTCHA verification error: ${
             data['error-codes']?.join(', ') || 'Unknown error'
           }`,
         );
       }
-      
+
       return data;
     } catch (error) {
       // TODO:  Log the detailed error for internal debugging
