@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 import { AppModule } from './app.module';
+import { corsOptionsDelegate } from './config/cors.config';
 import { AllExceptionsFilter } from './exception-filter';
 import { setupSwagger } from './shared/swagger/swagger.controller';
 
@@ -17,12 +18,7 @@ export async function bootstrap() {
 
   app.useLogger(logger);
 
-  app.enableCors({
-    origin: 'http://localhost:3333',
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type'],
-    maxAge: 86400,
-  });
+  app.enableCors(corsOptionsDelegate);
 
   app.enableVersioning({
     type: VersioningType.URI,
