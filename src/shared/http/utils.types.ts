@@ -50,7 +50,7 @@ export type ValidateHttpHeaderCase<S extends string> =
  *   DOUBLE_WORD_HEADER = 'DoubleWord-Header',
  * }
  *
- * @param testEnum - the Enum to type check
+ * @param _testEnum - the Enum to type check
  */
 
 export function testHttpHeaderEnumValidity<
@@ -61,12 +61,10 @@ export function testHttpHeaderEnumValidity<
     ValidateHttpHeaderCase<TValue>
   >,
 >(
-  testEnum: TEnum &
+  _testEnum: TEnum &
     Record<
       Exclude<keyof TEnum, keyof IConstants>,
       ['Key must be the CONSTANT_CASED version of the Capital-Cased value']
     >,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-) {
-  void testEnum;
-}
+) {}

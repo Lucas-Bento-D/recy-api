@@ -18,16 +18,15 @@ export async function bootstrap() {
 
   app.useLogger(logger);
 
-  app.enableCors(corsOptionsDelegate);
-
   app.enableVersioning({
     type: VersioningType.URI,
-    // defaultVersion: '1',
   });
 
   await setupSwagger(app);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  app.enableCors(corsOptionsDelegate);
 
   logger.log('BOOTSTRAPPED SUCCESSFULLY');
 
