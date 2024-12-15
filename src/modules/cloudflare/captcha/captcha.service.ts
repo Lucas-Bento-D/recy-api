@@ -17,10 +17,25 @@ export class CaptchaService {
         method: 'POST',
       });
 
+      if (!result.ok){
+        throw new Error(
+          `CAPTCHA verification failed with status: ${result.status}`,
+        );
+      }
+
       const data = await result.json();
+      if (!data.success){
+        throw new Error(
+          `CAPTCHA verification error: ${
+            data['error-codes']?.join(', ') || 'Unknown error'
+          }`,
+        );
+      }
+
       return data;
     } catch (error) {
-      throw new InternalServerErrorException();
+      // TODO:  Log the detailed error for internal debugging
+      throw new InternalServerErrorException('Failed turnstile verification.');
     }
   }
 }
