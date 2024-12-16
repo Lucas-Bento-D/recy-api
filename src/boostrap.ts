@@ -2,20 +2,21 @@ import './tracing';
 
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './exception-filter';
 import { setupSwagger } from './shared/swagger/swagger.controller';
 
 export async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
 
-  const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
-
-  app.useGlobalFilters(new AllExceptionsFilter(logger));
+  const logger = app.get(Logger);
 
   app.useLogger(logger);
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   app.enableCors({
     origin: 'http://localhost:3333',
