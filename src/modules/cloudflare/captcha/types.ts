@@ -1,7 +1,12 @@
-export interface CaptchaVerificationResponse {
-    success: boolean;
-    challenge_ts?: string;
-    hostname?: string;
-    'error-codes'?: string[];
-    metadata: { interactive: boolean}
+export interface ICaptchaProtectedReturn{
+    success: boolean
+    message: string,
+    data: {
+        token: string
+    }
+}
+export interface ITokenResponse{
+    body: {
+        token: string
+    }
 }
