@@ -1,24 +1,33 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
-import { TokenSchemaDto } from './dtos/token.dto';
-import { TurnstileService } from '../turnstile/turnstile.service';
 import { TurnstileOptions } from '../turnstile/interfaces/turnstile-options.interface';
-import { ICaptchaProtectedReturn } from './types';
+import { TurnstileService } from '../turnstile/turnstile.service';
+import { TokenSchemaDto } from './dtos/token.dto';
+import { CaptchaProtectedReturn } from './types';
 @Injectable()
 export class CaptchaService {
   constructor(
     private readonly turnstileService: TurnstileService,
     @Inject('TurnstileServiceOptions')
-    private readonly options: TurnstileOptions) {}
+    private readonly options: TurnstileOptions,
+  ) {}
 
   async captchaVerification({
     token,
-  }: TokenSchemaDto): Promise<Omit<ICaptchaProtectedReturn, "data">> {
+  }: TokenSchemaDto): Promise<Omit<CaptchaProtectedReturn, 'data'>> {
     try {
-      const { success, error } = await this.turnstileService.validateToken(token);
+      const { success, error } = await this.turnstileService.validateToken(
+        token,
+      );
 
       if (!success) {
-        throw new InternalServerErrorException(error || 'Captcha verification failed');
+        throw new InternalServerErrorException(
+          error || 'Captcha verification failed',
+        );
       }
 
       return { success: true, message: 'Captcha validated successfully' };

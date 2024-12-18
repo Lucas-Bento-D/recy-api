@@ -1,4 +1,4 @@
-export interface ITurnstileVerificationResponse {
+export interface TurnstileVerificationResponse {
   success: boolean;
   challenge_ts?: string;
   hostname?: string;

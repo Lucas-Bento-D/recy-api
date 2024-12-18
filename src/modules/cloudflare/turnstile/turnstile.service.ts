@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { TurnstileOptions } from './interfaces/turnstile-options.interface';
-import { ITurnstileVerificationResponse } from './types';
+import { TurnstileVerificationResponse } from './types';
 
 @Injectable()
 export class TurnstileService {
@@ -13,7 +13,7 @@ export class TurnstileService {
   async turnstileValidateTokenApi(
     token: string,
     secretKey: string,
-  ): Promise<ITurnstileVerificationResponse> {
+  ): Promise<TurnstileVerificationResponse> {
     const formData = new FormData();
     const hostVerificationUrl = this.options.host;
 
@@ -39,7 +39,7 @@ export class TurnstileService {
       );
     }
 
-    const data = (await result.json()) as ITurnstileVerificationResponse;
+    const data = (await result.json()) as TurnstileVerificationResponse;
 
     if (!data.success) {
       throw new Error(
