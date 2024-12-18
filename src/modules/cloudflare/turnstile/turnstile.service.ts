@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 import { TurnstileOptions } from './interfaces/turnstile-options.interface';
 import { TurnstileVerificationResponse } from './types';
@@ -26,31 +26,38 @@ export class TurnstileService {
     formData.append('secret', secretKey);
     formData.append('response', token);
 
-    const url = `${hostVerificationUrl}/turnstile/v0/siteverify`;
+    try {
+      const url = `${hostVerificationUrl}/turnstile/v0/siteverify`;
 
-    const result = await fetch(url, {
-      body: formData,
-      method: 'POST',
-    });
+      const result = await fetch(url, {
+        body: formData,
+        method: 'POST',
+      });
 
-    if (!result.ok) {
-      throw new Error(
-        `CAPTCHA verification failed with status: ${result.status}`,
+      if (!result.ok) {
+        throw new Error(
+          `CAPTCHA verification failed with status: ${result.status}`,
+        );
+      }
+
+      const data = (await result.json()) as TurnstileVerificationResponse;
+
+      if (!data.success) {
+        throw new Error(
+          `CAPTCHA verification error: ${
+            data['error-codes']?.join(', ') || 'Unknown error'
+          }`,
+        );
+      }
+
+      return data;
+    } catch (error) {
+      throw new BadRequestException(
+        `Error occurred during CAPTCHA verification: ${error}`,
       );
     }
-
-    const data = (await result.json()) as TurnstileVerificationResponse;
-
-    if (!data.success) {
-      throw new Error(
-        `CAPTCHA verification error: ${
-          data['error-codes']?.join(', ') || 'Unknown error'
-        }`,
-      );
-    }
-
-    return data;
   }
+
   async validateToken(
     token: string,
   ): Promise<{ success: boolean; error?: string }> {
@@ -59,8 +66,9 @@ export class TurnstileService {
       this.options.secretKey,
     );
 
-    if (!validationResponse.success)
+    if (!validationResponse.success) {
       return { success: false, error: 'Invalid token' };
+    }
     return { success: true };
   }
 }
