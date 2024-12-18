@@ -6,8 +6,6 @@ import { HttpRequestHeaderKeysEnum } from '@/shared/http';
 export const corsOptionsDelegate: Parameters<
   INestApplication['enableCors']
 >[0] = function (req: Request, callback) {
-  console.log('FRONT_BASE_URL:', process.env.FRONT_BASE_URL);
-
   const corsOptions: Parameters<typeof callback>[1] = {
     origin: false as boolean | string | string[],
     preflightContinue: false,
