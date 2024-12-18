@@ -26,14 +26,14 @@ export class CaptchaService {
 
       if (!success) {
         throw new InternalServerErrorException(
-          error || 'Captcha verification failed',
+          `Captcha verification failed ${error}`,
         );
       }
 
       return { success: true, message: 'Captcha validated successfully' };
     } catch (error) {
       // TODO:  Log the detailed error for internal debugging
-      throw new InternalServerErrorException('Failed turnstile verification.');
+      throw new InternalServerErrorException(`Failed turnstile verification. ${error}`);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 
 import { TurnstileOptions } from './interfaces/turnstile-options.interface';
 import { TurnstileVerificationResponse } from './types';
@@ -18,7 +18,7 @@ export class TurnstileService {
     const hostVerificationUrl = this.options.host;
 
     if (!secretKey || !hostVerificationUrl) {
-      throw new Error(
+      throw new InternalServerErrorException(
         'CAPTCHA environment variables are not configured properly.',
       );
     }
