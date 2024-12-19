@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
+import { corsOptionsDelegate } from './config/cors.config';
 import { AllExceptionsFilter } from './exception-filter';
 import { setupSwagger } from './shared/swagger/swagger.controller';
 
@@ -18,21 +19,15 @@ export async function bootstrap() {
   app.useLogger(logger);
   app.useGlobalFilters(new AllExceptionsFilter(logger));
 
-  app.enableCors({
-    origin: 'http://localhost:3333',
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type'],
-    maxAge: 86400,
-  });
-
   app.enableVersioning({
     type: VersioningType.URI,
-    // defaultVersion: '1',
   });
 
   await setupSwagger(app);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  app.enableCors(corsOptionsDelegate);
 
   logger.log('BOOTSTRAPPED SUCCESSFULLY');
 

@@ -7,11 +7,10 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { User } from '@prisma/client';
 
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
@@ -19,6 +18,7 @@ import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { CreateUserDto, CreateUserSchema } from './dtos/create-user.dto';
 import { UpdateUserDto, UpdateUserSchema } from './dtos/update-user.dto';
+import { ValidateUserDto } from './dtos/validate-user.dto';
 import { UserService } from './user.service';
 
 @ApiTags('users')
@@ -87,5 +87,19 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Param('id') id: string): Promise<User> {
     return this.userService.deleteUser(id);
+  }
+
+  @UseGuards(AuthorizationGuard)
+  @Post('validate')
+  @ApiResponse({
+    status: 200,
+    description: 'User validated or created successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid user details or failed validation.',
+  })
+  async validateUser(@Body() validateUserDto: ValidateUserDto) {
+    return this.userService.validateUser(validateUserDto);
   }
 }

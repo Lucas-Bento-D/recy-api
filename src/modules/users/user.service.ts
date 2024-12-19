@@ -11,6 +11,8 @@ import { PrismaService } from '@/modules/prisma/prisma.service';
 
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { ValidateUserDto } from './dtos/validate-user.dto';
+import { ValidateUserResponse } from './types';
 
 @Injectable()
 export class UserService {
@@ -29,7 +31,8 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
-    const { email, name, phone, walletAddress, roleIds } = createUserDto;
+    const { email, name, phone, walletAddress, roleIds, authId, authProvider } =
+      createUserDto;
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -81,6 +84,8 @@ export class UserService {
         email,
         name,
         phone,
+        authProvider,
+        authId,
         walletAddress,
         userRoles: {
           create: roleIds.map((roleId) => ({
@@ -185,5 +190,52 @@ export class UserService {
     });
 
     return users;
+  }
+
+  async validateUser(
+    validateUserDto: ValidateUserDto,
+  ): Promise<ValidateUserResponse> {
+    const { authId, email, name, picture, authProvider } = validateUserDto;
+
+    // Check if a user exists with the same email
+    const existingUserByEmail = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    // If user exists by email but has different authId/authProvider, update the user
+    if (existingUserByEmail) {
+      if (
+        existingUserByEmail.authId !== authId ||
+        existingUserByEmail.authProvider !== authProvider
+      ) {
+        const updatedUser = await this.prisma.user.update({
+          where: { email },
+          data: {
+            authId,
+            authProvider,
+            picture,
+          },
+        });
+        return { userExists: true, user: updatedUser };
+      }
+
+      // If the email matches and authId/authProvider are the same, return the existing user
+      return { userExists: true, user: existingUserByEmail };
+    }
+
+    // If no user exists with the same email, create a new user
+    const newUser = await this.prisma.user.create({
+      data: {
+        email,
+        name,
+        authId,
+        authProvider,
+        picture,
+      },
+    });
+
+    return { userExists: false, user: newUser };
   }
 }

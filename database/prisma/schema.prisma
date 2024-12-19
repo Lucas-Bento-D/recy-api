@@ -25,12 +25,16 @@ model User {
   email         String   @unique
   phone         String?
   walletAddress String?
+  authProvider String?
+  authId       String?
+  picture       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
 
   audits           Audit[]           @relation("UserAudits")
   userRoles        UserRole[]        @relation("UserRoles")
   recyclingReports RecyclingReport[] @relation("UserRecyclingReport")
+  @@unique([authProvider, authId])
 }
 
 model Role {
