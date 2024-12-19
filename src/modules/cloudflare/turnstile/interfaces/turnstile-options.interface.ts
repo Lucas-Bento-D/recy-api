@@ -1,4 +1,4 @@
-import { TokenResponse } from '../../captcha/types';
+import { TokenResponse } from '../types';
 
 export abstract class TurnstileOptions {
   abstract secretKey: string;
