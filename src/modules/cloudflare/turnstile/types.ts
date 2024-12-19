@@ -5,3 +5,15 @@ export interface TurnstileVerificationResponse {
   'error-codes'?: string[];
   metadata: { interactive: boolean };
 }
+export interface CaptchaProtectedReturn {
+  success: boolean;
+  message: string;
+  data: {
+    token: string;
+  };
+}
+export interface TokenResponse {
+  headers: {
+    'x-recaptcha-token': string;
+  };
+}
