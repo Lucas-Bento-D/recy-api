@@ -102,4 +102,22 @@ export class UserController {
   async validateUser(@Body() validateUserDto: ValidateUserDto) {
     return this.userService.validateUser(validateUserDto);
   }
+
+  @UseGuards(AuthorizationGuard)
+  @Get(':id/stats')
+  @ApiParam({ name: 'id', type: 'string', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics for the user',
+    schema: {
+      example: {
+        totalAudits: 5,
+        totalReports: 12,
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getStatsForUser(@Param('id') id: string): Promise<any> {
+    return this.userService.getStatsForUser(id);
+  }
 }
