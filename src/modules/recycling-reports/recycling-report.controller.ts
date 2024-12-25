@@ -16,6 +16,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -77,6 +78,19 @@ export class RecyclingReportController {
 
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'The page number (must be an integer >= 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description:
+      'The number of items per page (must be an integer between 1 and 100)',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of recycling reports.',

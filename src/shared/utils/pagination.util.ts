@@ -15,9 +15,14 @@ export type PaginationDto = z.infer<typeof PaginationSchema>;
 
 export interface PaginatedResult<T> {
   data: T[];
-  total: number;
-  totalPages: number;
-  currentPage: number;
+  meta: {
+    page: number;
+    limit: number;
+    itemCount: number;
+    pageCount: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  };
 }
 
 export interface PaginationParams {
@@ -41,12 +46,17 @@ export async function paginate<T>(
   const take = limit;
 
   const [total, data] = await Promise.all([getCount(), getData(skip, take)]);
-  const totalPages = Math.ceil(total / take);
+  const pageCount = Math.ceil(total / limit);
 
   return {
     data,
-    total,
-    totalPages,
-    currentPage: page,
+    meta: {
+      page,
+      limit,
+      itemCount: data.length,
+      pageCount,
+      hasPreviousPage: page > 1,
+      hasNextPage: page < pageCount,
+    },
   };
 }

@@ -10,7 +10,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Audit } from '@prisma/client';
 
 import { PaginatedResult } from '@/shared/utils/pagination.util';
@@ -51,8 +51,18 @@ export class AuditController {
     summary: 'Retrieve all audits',
     description: 'Fetches a list of all audits from the system.',
   })
-  @ApiResponse({
-    status: 200,
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'The page number (must be an integer >= 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description:
+      'The number of items per page (must be an integer between 1 and 100)',
   })
   async findAll(
     @Query() params: AuditQueryParams,

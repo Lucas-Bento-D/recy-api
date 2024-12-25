@@ -11,7 +11,13 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { User } from '@prisma/client';
 
 import { PaginatedResult } from '@/shared/utils/pagination.util';
@@ -27,7 +33,7 @@ import { UserService } from './user.service';
 @ApiTags('users')
 @Controller({ path: 'users', version: '1' })
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @UseGuards(AuthorizationGuard)
   @Post()
@@ -43,6 +49,23 @@ export class UserController {
 
   @UseGuards(AuthorizationGuard)
   @Get()
+  @ApiOperation({
+    summary: 'Retrieve all Users',
+    description: 'Fetches a list of all users from the system.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'The page number (must be an integer >= 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description:
+      'The number of items per page (must be an integer between 1 and 100)',
+  })
   @ApiResponse({ status: 200, description: 'List of all users' })
   async findAllUsers(
     @Query() params: UserQueryParams,
