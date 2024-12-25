@@ -20,13 +20,14 @@ import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { CreateUserDto, CreateUserSchema } from './dtos/create-user.dto';
 import { UpdateUserDto, UpdateUserSchema } from './dtos/update-user.dto';
+import { ValidateUserDto } from './dtos/validate-user.dto';
 import { UserQueryParams } from './interface/user.types';
 import { UserService } from './user.service';
 
 @ApiTags('users')
 @Controller({ path: 'users', version: '1' })
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthorizationGuard)
   @Post()
@@ -92,5 +93,37 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Param('id') id: string): Promise<User> {
     return this.userService.deleteUser(id);
+  }
+
+  @UseGuards(AuthorizationGuard)
+  @Post('validate')
+  @ApiResponse({
+    status: 200,
+    description: 'User validated or created successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid user details or failed validation.',
+  })
+  async validateUser(@Body() validateUserDto: ValidateUserDto) {
+    return this.userService.validateUser(validateUserDto);
+  }
+
+  @UseGuards(AuthorizationGuard)
+  @Get(':id/stats')
+  @ApiParam({ name: 'id', type: 'string', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Statistics for the user',
+    schema: {
+      example: {
+        totalAudits: 5,
+        totalReports: 12,
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getStatsForUser(@Param('id') id: string): Promise<any> {
+    return this.userService.getStatsForUser(id);
   }
 }

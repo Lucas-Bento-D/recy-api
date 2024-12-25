@@ -14,6 +14,8 @@ export const CreateUserSchema = z.object({
   roleIds: z.array(z.string(), {
     message: 'Role IDs must be an array of strings',
   }),
+  authId: z.string({ message: 'authId must be a string' }),
+  authProvider: z.string({ message: 'authProvider must be a string' }),
 });
 
 export type CreateUserDto = z.infer<typeof CreateUserSchema>;

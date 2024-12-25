@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { RecyclingReport } from '@prisma/client';
 import { ulid } from 'ulid';
 
@@ -19,13 +24,11 @@ import { RecyclingReportQueryParams } from './interface/recycling-report.types';
 @Injectable()
 export class RecyclingReportService {
   constructor(
+    private readonly userService: UserService,
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly uploadService: UploadService,
-    private readonly userService: UserService,
-  ) { }
-
-  //TODO: recyclingEvidence x reportEvidence
+  ) {}
 
   async createRecyclingReport(
     createRecyclingReportDto: CreateRecyclingReportDto,

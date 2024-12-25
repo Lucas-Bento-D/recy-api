@@ -30,9 +30,9 @@ import { UploadModule } from './shared/modules/upload/upload.module';
     LoggerModule,
     FootprintModule,
     MailModule,
+    UserModule,
     RecyclingReportModule,
     AuditModule,
-    UserModule,
     HealthModule,
     DatadogTraceModule.forRoot({
       controllers: true,
