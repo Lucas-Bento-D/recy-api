@@ -20,11 +20,13 @@ import { Web3Module } from './modules/web3/web3.module';
 import { LoggerModule } from './shared/modules/logger/logger.module';
 import { MailModule } from './shared/modules/mail/mail.module';
 import { UploadModule } from './shared/modules/upload/upload.module';
+import { CaptchaModule } from './modules/cloudflare/captcha/captcha.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    CaptchaModule,
     Web3Module,
     UploadModule,
     LoggerModule,
