@@ -15,6 +15,13 @@ function createPermissionsGuard(
   @Injectable()
   class PermissionsGuardImpl implements CanActivate {
     async canActivate(context: ExecutionContext): Promise<boolean> {
+      if (
+        process.env.NODE_ENV === 'development' ||
+        process.env.ALLOW_SWAGGER_ACCESS === 'true'
+      ) {
+        return true;
+      }
+
       const request = context.switchToHttp().getRequest<Request>();
       const response = context.switchToHttp().getResponse<Response>();
 

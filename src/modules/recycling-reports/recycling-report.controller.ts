@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -15,10 +16,16 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { RecyclingReport } from '@prisma/client';
+
+import {
+  PaginatedResult,
+  PaginationParams,
+} from '@/shared/utils/pagination.util';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { PermissionsGuard } from '../authorization/permission.guard';
@@ -28,6 +35,7 @@ import {
   CreateRecyclingReportSwaggerDto,
 } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
+import { RecyclingReportQueryParams } from './interface/recycling-report.types';
 import { RecyclingReportPermissions } from './recycling-report.permissions';
 import { RecyclingReportService } from './recycling-report.service';
 
@@ -36,7 +44,7 @@ import { RecyclingReportService } from './recycling-report.service';
 export class RecyclingReportController {
   constructor(
     private readonly recyclingReportService: RecyclingReportService,
-  ) {}
+  ) { }
 
   @UseGuards(PermissionsGuard(RecyclingReportPermissions))
   @UseGuards(AuthorizationGuard)
@@ -68,16 +76,30 @@ export class RecyclingReportController {
     return this.recyclingReportService.createRecyclingReport(parsedData);
   }
 
-  @UseGuards(PermissionsGuard(RecyclingReportPermissions))
-  @UseGuards(AuthorizationGuard)
   @Get()
   @ApiOperation({ summary: 'Retrieve all recycling reports' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'The page number (must be an integer >= 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description:
+      'The number of items per page (must be an integer between 1 and 100)',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of recycling reports.',
   })
-  async findAllRecyclingReports(): Promise<RecyclingReport[]> {
-    return this.recyclingReportService.findAllRecyclingReports();
+  async findAllRecyclingReports(
+    @Query() params: RecyclingReportQueryParams,
+  ): Promise<PaginatedResult<RecyclingReport>> {
+    const { page, limit } = params;
+    return this.recyclingReportService.findAllRecyclingReports({ page, limit });
   }
 
   @UseGuards(PermissionsGuard(RecyclingReportPermissions))

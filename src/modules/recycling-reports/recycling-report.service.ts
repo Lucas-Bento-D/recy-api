@@ -8,12 +8,18 @@ import { RecyclingReport } from '@prisma/client';
 import { ulid } from 'ulid';
 
 import { PrismaService } from '@/modules/prisma/prisma.service';
+import {
+  paginate,
+  PaginatedResult,
+  PaginationParams,
+} from '@/shared/utils/pagination.util';
 
 import { UploadService } from '../../shared/modules/upload/upload.service';
 import { AuditService } from '../audits/audit.service';
 import { UserService } from '../users/user.service';
 import { CreateRecyclingReportDto } from './dtos/create-recycling-report.dto';
 import { UpdateRecyclingReportDto } from './dtos/update-recycling-report.dto';
+import { RecyclingReportQueryParams } from './interface/recycling-report.types';
 
 @Injectable()
 export class RecyclingReportService {
@@ -80,10 +86,24 @@ export class RecyclingReportService {
     return createdReport;
   }
 
-  async findAllRecyclingReports(): Promise<RecyclingReport[]> {
-    return this.prisma.recyclingReport.findMany({
-      include: { user: true, audits: true },
-    });
+  async findAllRecyclingReports(
+    params: RecyclingReportQueryParams,
+  ): Promise<PaginatedResult<RecyclingReport>> {
+    return paginate<RecyclingReport>(
+      () =>
+        this.prisma.recyclingReport.count({
+          where: {},
+        }),
+      (skip, take) =>
+        this.prisma.recyclingReport.findMany({
+          skip,
+          take,
+          orderBy: { createdAt: 'desc' },
+          include: { user: true, audits: true },
+          where: {},
+        }),
+      params,
+    );
   }
 
   async findRecyclingReportById(id: string): Promise<RecyclingReport> {

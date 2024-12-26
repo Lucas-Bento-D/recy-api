@@ -7,24 +7,33 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { User } from '@prisma/client';
 
+import { PaginatedResult } from '@/shared/utils/pagination.util';
 import { ZodValidationPipe } from '@/shared/utils/zod-validation.pipe';
 
 import { AuthorizationGuard } from '../authorization/authorization.guard';
 import { CreateUserDto, CreateUserSchema } from './dtos/create-user.dto';
 import { UpdateUserDto, UpdateUserSchema } from './dtos/update-user.dto';
 import { ValidateUserDto } from './dtos/validate-user.dto';
+import { UserQueryParams } from './interface/user.types';
 import { UserService } from './user.service';
 
 @ApiTags('users')
 @Controller({ path: 'users', version: '1' })
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @UseGuards(AuthorizationGuard)
   @Post()
@@ -40,9 +49,29 @@ export class UserController {
 
   @UseGuards(AuthorizationGuard)
   @Get()
+  @ApiOperation({
+    summary: 'Retrieve all Users',
+    description: 'Fetches a list of all users from the system.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'The page number (must be an integer >= 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description:
+      'The number of items per page (must be an integer between 1 and 100)',
+  })
   @ApiResponse({ status: 200, description: 'List of all users' })
-  async findAllUsers(): Promise<User[]> {
-    return this.userService.findAllUsers();
+  async findAllUsers(
+    @Query() params: UserQueryParams,
+  ): Promise<PaginatedResult<User>> {
+    const { page, limit } = params;
+    return this.userService.findAllUsers({ page, limit });
   }
 
   @UseGuards(AuthorizationGuard)

@@ -17,4 +17,4 @@ import loggerFactory from './logger-factory';
   ],
   exports: [PinoLoggerModule],
 })
-export class LoggerModule { }
+export class LoggerModule {}
